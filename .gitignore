@@ -1,0 +1,8 @@
+/__pycache__
+/db_control/__pycache__/
+.venv/Include/site/python3.12/greenlet/greenlet.h
+/venv
+/.env
+/.venv
+/routers/__pycache__
+/models/__pycache__
