@@ -6,3 +6,4 @@
 /.venv
 /routers/__pycache__
 /models/__pycache__
+/modules/__pycache__
