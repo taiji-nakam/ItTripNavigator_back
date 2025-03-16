@@ -18,9 +18,6 @@ def get_industry():
     status, result = mdlCommon.getIndustry()
     return JSONResponse(content=json.loads(result), status_code=status)
 
-
-
-
 @router.get("/prd/{prd_id}")
 def read_prd(prd_id: int):
     # 製品情報の取得
