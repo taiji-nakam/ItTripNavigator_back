@@ -1,8 +1,8 @@
 # uname() error回避
 import platform
 import math
+from sqlalchemy import create_engine, insert, delete, update, select, and_, or_
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import asc
 import json
 import pandas as pd
 from datetime import datetime
@@ -10,53 +10,9 @@ from typing import Tuple
 from zoneinfo import ZoneInfo
 
 from db_control.connect import engine
-from db_control.mymodels import m_industry
+from db_control.mymodels import m_product, t_transaction, d_transaction_details, m_tax, m_promotion_plan
 
 from models.params import CheckoutData
-
-# m_industryデータ取得
-def select_m_industry() -> Tuple[int, str]:
-    # 初期化
-    result_json = ""
-    status_code = 200
-
-    # session構築
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    
-    try:
-        # クエリの作成: is_visible = 1 のデータを display_order 順に取得
-        result = (
-            session.query(m_industry.industry_id, m_industry.industry_name)
-            .filter(m_industry.is_visible == 1)
-            .order_by(asc(m_industry.display_order))
-            .all()
-        )
-        
-        # 結果をチェック
-        if not result:
-            result_json = json.dumps({"message": "Industry not found"}, ensure_ascii=False)
-            status_code = 404
-        else:
-            # クエリ結果をリスト形式で JSON に変換
-            result_json = json.dumps(
-                [{"id": industry_id, "name": industry_name} for industry_id, industry_name in result],
-                ensure_ascii=False
-            )
-
-    except Exception as e:
-        result_json = json.dumps(
-            {"error": "例外が発生しました。", "details": str(e)}, 
-            ensure_ascii=False
-        )
-        print("!!error!!", e)
-        status_code = 500
-    finally:
-        # セッションを閉じる
-        session.close()
-
-    return status_code, result_json
-
 
 # m_productデータ取得
 def select_m_product(code) -> Tuple[int,str]:
