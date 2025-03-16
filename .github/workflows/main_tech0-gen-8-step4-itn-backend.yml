@@ -35,15 +35,13 @@ jobs:
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip release.zip ./* -r -x "venv/*"  # venv を除外
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            release.zip
-            !venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,9 +57,12 @@ jobs:
           name: python-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
+        run: unzip release.zip -d deploy/  # deploy/ に展開
 
-      
+      - name: Configure Azure SCM settings
+        run: |
+          az webapp config appsettings set --resource-group <RESOURCE_GROUP> --name tech0-gen-8-step4-itn-backend --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
@@ -69,3 +70,5 @@ jobs:
           app-name: 'tech0-gen-8-step4-itn-backend'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1E2C16C0B2E24329914AC193E1A8E252 }}
+          package: release.zip
+          deployment-method: zipDeploy  # OneDeploy から zipDeploy に変更
