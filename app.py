@@ -6,7 +6,7 @@ import traceback
 from fastapi.exceptions import RequestValidationError
 
 # routerオブジェクトをインポートし、posとしてエイリアスを付ける
-from routers.pos import router as pos_router
+from routers.itnavi import router as itnavi_router
 
 app = FastAPI()
 
@@ -16,7 +16,7 @@ app = FastAPI()
 async def general_exception_handler(request: Request, exc: Exception):
     print(f"一般的なエラー発生: {exc}")
     print(f"リクエストデータ: {await request.body()}")
-    traceback.print_exc()  # ✅ エラースタックを表示
+    traceback.print_exc()  # エラースタックを表示
     return JSONResponse(
         status_code=500,
         content={"message": "サーバーエラーが発生しました"}
@@ -27,7 +27,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print(f"バリデーションエラー発生: {exc}")
     print(f"リクエストデータ: {await request.body()}")
-    traceback.print_exc()  # ✅ エラースタックを表示
+    traceback.print_exc()  # エラースタックを表示
     return JSONResponse(
         status_code=422,
         content={"message": "リクエストバリデーションエラー", "details": exc.errors()}
@@ -42,12 +42,10 @@ app.add_middleware(
     expose_headers=["*"],  # 追加: レスポンスヘッダーをクライアント側で取得可能にする
 )
 # routerオブジェクトをアプリケーションに追加
-app.include_router(pos_router)
+app.include_router(itnavi_router)
 
 # uvicorn.access のロガーを有効にする
 logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-
-
 
 # アプリの起動
 # uvicorn起動コマンド
