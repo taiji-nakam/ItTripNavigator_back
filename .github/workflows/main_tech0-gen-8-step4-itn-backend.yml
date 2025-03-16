@@ -59,8 +59,8 @@ jobs:
         with:
           name: python-app
 
-      # - name: Unzip artifact for deployment
-      #  run: unzip release.zip
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
 
       
       - name: 'Deploy to Azure Web App'
@@ -70,4 +70,4 @@ jobs:
           app-name: 'tech0-gen-8-step4-itn-backend'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_DFCFF1330FEF4682BBA9C0DC17B7ED43 }}
-          package: release.zip
+          # package: release.zip
