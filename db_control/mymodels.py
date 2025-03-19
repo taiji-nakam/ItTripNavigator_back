@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey,DECIMAL
+from sqlalchemy import ForeignKey,DECIMAL, Nullable
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from datetime import datetime
 
@@ -42,13 +42,25 @@ class m_hashtag(Base):
     hashtag_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     hashtag_name: Mapped[str] = mapped_column()
 
+# 検索履歴: d_search
+class t_search(Base):
+    __tablename__ = "t_search"
+    search_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column()
+    search_ymd: Mapped[datetime] = mapped_column(nullable=False)
+    search_mode: Mapped[int] = mapped_column(nullable=False)  #0:事例検索,1:人員検索
+
 # 検索履歴(詳細): d_search
 class d_search(Base):
     __tablename__ = "d_search"
     search_id: Mapped[int] = mapped_column(primary_key=True)
     search_id_sub: Mapped[int] = mapped_column(primary_key=True)
-    case_id: Mapped[int] = mapped_column(nullable=True)
-    job_id: Mapped[int] = mapped_column(nullable=True)
+    industry_id: Mapped[int] = mapped_column()
+    company_size_id: Mapped[int] = mapped_column()
+    department_id: Mapped[int] = mapped_column()
+    theme_id: Mapped[int] = mapped_column()
+    case_id: Mapped[int] = mapped_column()
+    job_id: Mapped[int] = mapped_column()
     search_ymd: Mapped[datetime] = mapped_column()
 
 # 事例_業界対照表: case_industry

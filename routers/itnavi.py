@@ -2,9 +2,9 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import CheckoutData
+from models.params import caseSearchData
 import json
-from modules import mdlCommon
+from modules import mdlCommon,mdlSearchCase
 
 router = APIRouter()
 
@@ -12,82 +12,46 @@ router = APIRouter()
 def read_root():
     return {"message": "Hello, itnavi(FastAPI)"}
 
+@router.get("/allIssues​")
+def get_industry():
+    # 業界情報の取得
+    status, result = mdlCommon.getAllIssues()
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/searchCase")
+def create_search_case(data:caseSearchData):
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlSearchCase.createSearchCase(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.get("/searchCaseList{search_id,search_id_sub}")
+def create_search_case(search_id: int, search_id_sub: int):
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlSearchCase.getSearchCaseList(search_id, search_id_sub)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+
+
 @router.get("/industry")
 def get_industry():
     # 業界情報の取得
     status, result = mdlCommon.getIndustry()
     return JSONResponse(content=json.loads(result), status_code=status)
 
-# @router.get("/prd/{prd_id}")
-# def read_prd(prd_id: int):
-#     # 製品情報の取得
-#     result = None
-#     status,result = crud.select_m_product(prd_id)
-#     # ステータスコードに応じた処理
-#     if status == 404:
-#         return JSONResponse(
-#             content=json.loads(result),  # JSON を直接返す
-#             status_code=404
-#         )
-#     elif status != 200:
-#         raise HTTPException(
-#             status_code=status,
-#             detail=json.loads(result)
-#         )
-#     # 正常レスポンス
-#     return json.loads(result)  # JSON を直接返す
+@router.get("/company_size")
+def get_company_size():
+    # 業界情報の取得
+    status, result = mdlCommon.getCompanySize()
+    return JSONResponse(content=json.loads(result), status_code=status)
 
-# @router.post("/checkout")
-# async def checkout(data: CheckoutData):
-#     print("###checkout:", data)
-#     if not data.cart:
-#         return {"message": "カートが空です", "total": 0}
-#     # total_amount = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
-#     status,result = crud.insert_transaction(data)
-#     # ステータスコードに応じた処理
-#     if status != 200:
-#         raise HTTPException(
-#             status_code=status,
-#             detail=json.loads(result)
-#         )
-    
-#     # 正常レスポンス
-#     return json.loads(result)  # JSON を直接返す
+@router.get("/department")
+def get_department():
+    # 業界情報の取得
+    status, result = mdlCommon.getDepartment()
+    return JSONResponse(content=json.loads(result), status_code=status)
 
-# @router.get("/tax")
-# def read_tax():
-#     # 最新の税情報の取得
-#     result = None
-#     status,result = crud.select_m_tax()
-#     # ステータスコードに応じた処理
-#     if status == 404:
-#         return JSONResponse(
-#             content=json.loads(result),  # JSON を直接返す
-#             status_code=404
-#         )
-#     elif status != 200:
-#         raise HTTPException(
-#             status_code=status,
-#             detail=json.loads(result)
-#         )
-#     # 正常レスポンス
-#     return json.loads(result)  # JSON を直接返す
-
-# @router.get("/prd_ex/{prd_id}")
-# def read_prd_ex(prd_id: int):
-#     # 製品情報の取得(LV3)
-#     result = None
-#     status,result = crud.select_m_product_ex(prd_id)
-#     # ステータスコードに応じた処理
-#     if status == 404:
-#         return JSONResponse(
-#             content=json.loads(result),  # JSON を直接返す
-#             status_code=404
-#         )
-#     elif status != 200:
-#         raise HTTPException(
-#             status_code=status,
-#             detail=json.loads(result)
-#         )
-#     # 正常レスポンス
-#     return json.loads(result)  # JSON を直接返す
+@router.get("/theme")
+def get_theme():
+    # 業界情報の取得
+    status, result = mdlCommon.getTheme()
+    return JSONResponse(content=json.loads(result), status_code=status)

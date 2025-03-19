@@ -1,24 +1,16 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List,Optional
 
-# 商品のデータモデル
-class Item(BaseModel):
-    prdId: int
-    code: str
-    name: str
-    price: int
-    quantity: int
-    totalPrice: int
+class searchIdData(BaseModel):
+    search_id: Optional[int] = None # 検索ID
+    search_id_sub: Optional[int] = None #検索サブID
 
-# カート全体のデータモデル
-class Cart(BaseModel):
-    cart: List[Item]
-
-# チェックアウトのデータモデル
-class CheckoutData(BaseModel):
-    cart: List[Item]
-    emp_cd: str  # レジ担当者コード
-    store_cd: str  # 店舗コード
-    pos_no: str  # POS機 ID
-    tax_code: str # 税コード
-    tax_percent: float # 税率
+# 事例検索履歴登録のデータモデル
+class caseSearchData(BaseModel):
+    search_id: Optional[int] = None # 検索ID
+    search_id_sub: Optional[int] = None #検索サブID
+    industry_id: int  # 業界ID
+    company_size_id: int  # 企業規模ID
+    department_id: int  # 部署ID
+    theme_id: int # テーマID
+    
