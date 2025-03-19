@@ -403,3 +403,93 @@ def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -
         session.close()
 
     return status_code, result_json
+
+def update_d_search_case(
+    search_id: int,
+    search_id_sub: int,
+    param_case_id: int
+) -> Tuple[int, Optional[str]]:
+    """
+    d_searchテーブルのレコードを更新または新規追加し、search_id_sub を返す。
+    
+    1) (search_id, search_id_sub) で既存レコードを検索
+       - 見つからなければ 404 を返す
+    2) 見つかったレコードの case_id が null の場合
+       - そのレコードを更新して case_id=param_case_id にし、search_id_sub は既存の値のまま
+    3) 見つかったレコードの case_id がすでに入っている場合
+       - 新規レコードを作成する
+         * search_id は同じ
+         * search_id_sub は 同一search_id の最大 + 1
+         * industry_id, company_size_id, department_id, theme_id, job_id は既存レコードの値をコピー
+         * case_id は param_case_id
+         * search_ymd はシステム日付
+    4) 更新または新規追加したレコードの search_id_sub を返す
+    """
+    status_code = 200
+    return_sub_id: Optional[int] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            # (1) 既存レコードを検索
+            current_record = (
+                session.query(d_search)
+                .filter(
+                    d_search.search_id == search_id,
+                    d_search.search_id_sub == search_id_sub
+                )
+                .first()
+            )
+            if not current_record:
+                status_code = 404
+                return status_code, f"No d_search record found for search_id: {search_id}, search_id_sub: {search_id_sub}"
+
+            # (2) case_id が null の場合 → 既存レコードを更新
+            if current_record.case_id is None:
+                current_record.case_id = param_case_id
+                session.flush()
+                session.refresh(current_record)
+                return_sub_id = current_record.search_id_sub
+
+            else:
+                # (3) case_id が既に入っている場合 → 新規レコードを作成
+                max_sub = (
+                    session.query(func.max(d_search.search_id_sub))
+                    .filter(d_search.search_id == search_id)
+                    .scalar()
+                )
+                if max_sub is None:
+                    new_sub = 1
+                else:
+                    new_sub = max_sub + 1
+
+                new_record = d_search(
+                    search_id=current_record.search_id,
+                    search_id_sub=new_sub,
+                    industry_id=current_record.industry_id,
+                    company_size_id=current_record.company_size_id,
+                    department_id=current_record.department_id,
+                    theme_id=current_record.theme_id,
+                    job_id=current_record.job_id,
+                    case_id=param_case_id,
+                    search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
+                )
+                session.add(new_record)
+                session.flush()
+                session.refresh(new_record)
+                return_sub_id = new_record.search_id_sub
+
+    except Exception as e:
+        session.rollback()
+        print("error:", e)
+        status_code = 500
+        return status_code, str(e)
+
+    finally:
+        session.close()
+
+    # (4) 成功時は search_id_sub を返す
+    return status_code, str(return_sub_id)
+

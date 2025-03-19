@@ -2,7 +2,7 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import caseSearchData
+from models.params import caseSearchData,setCaseData
 import json
 from modules import mdlCommon,mdlSearchCase
 
@@ -24,10 +24,16 @@ def create_search_case(data:caseSearchData):
     status, result = mdlSearchCase.createSearchCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/searchCaseList{search_id,search_id_sub}")
+@router.get("/caseList{search_id,search_id_sub}")
 def create_search_case(search_id: int, search_id_sub: int):
     # 検索ID/検索サブID発行、検索履歴登録
-    status, result = mdlSearchCase.getSearchCaseList(search_id, search_id_sub)
+    status, result = mdlSearchCase.getCaseList(search_id, search_id_sub)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/case")
+def create_search_case(data:setCaseData):
+    # 選択ケースを登録
+    status, result = mdlSearchCase.updateSearchCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
 
