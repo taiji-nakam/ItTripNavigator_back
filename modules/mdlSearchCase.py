@@ -3,7 +3,7 @@ import json
 from db_control import crud, mymodels
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException
-from models.params import caseSearchData
+from models.params import caseSearchData,setCaseData
 from typing import Final
 
 SEARCH_MODE: Final[int] = 0  #事例検索のため0を指定
@@ -46,7 +46,7 @@ def createSearchCase(data:caseSearchData) -> tuple[int, str]:
     return status, final_json
 
 # 事例リストを取得
-def getSearchCaseList(search_id, search_id_sub) -> tuple[int, str]:
+def getCaseList(search_id, search_id_sub) -> tuple[int, str]:
 
     # 事例リストの取得
     status, result = crud.select_m_case_list(search_id, search_id_sub)
@@ -64,3 +64,36 @@ def getSearchCaseList(search_id, search_id_sub) -> tuple[int, str]:
             detail=json.loads(result)
         )
     return status, result  # 正常時もTuple[int, str] を返す
+
+# 選択された事例を登録
+def updateSearchCase(data:setCaseData) -> tuple[int, str]:
+
+    # 選択された事例を検索履歴(詳細)へ登録
+    status, result = crud.update_d_search_case(data.search_id, data.search_id_sub, data.case_id)
+
+    # Status異常時の処理
+    if status == 404:
+        # エラーメッセージをJSON形式にして返す
+        return status, json.dumps({"message": result}, ensure_ascii=False)
+    elif status != 200:
+        # resultがNoneの場合、空の辞書を代わりに使用
+        error_detail = json.loads(result) if result is not None else {"error": "Unknown error"}
+        raise HTTPException(
+            status_code=status,
+            detail=error_detail
+        )
+    else: 
+        # 正常時(200) → data.search_id と 新規発行された search_id_sub を返す
+        # (既に事例IDが登録されている場合は新しく検索サブIDを発行しFrontへ戻す)
+        new_search_sub_id = int(result)
+        final_json = json.dumps(
+            {
+                "search_id": data.search_id,
+                "search_id_sub": new_search_sub_id
+            },
+            ensure_ascii=False
+        )
+        result = final_json
+
+    return status, result
+
