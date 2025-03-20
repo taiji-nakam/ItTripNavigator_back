@@ -24,10 +24,16 @@ def create_search_case(data:caseSearchData):
     status, result = mdlSearchCase.createSearchCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/caseList{search_id,search_id_sub}")
+@router.get("/cases{search_id,search_id_sub}")
 def select_case_list(search_id: int, search_id_sub: int):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlSearchCase.getCaseList(search_id, search_id_sub)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.get("/cases/featured")
+def select_featured_case_list():
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlSearchCase.getFeaturedCaseList()
     return JSONResponse(content=json.loads(result), status_code=status)
 
 @router.post("/case")
