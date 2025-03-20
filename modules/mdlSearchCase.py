@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 from fastapi import HTTPException
 from models.params import caseSearchData,setCaseData
 from typing import Final
+# from dotenv import load_dotenv
+import os
 
 SEARCH_MODE: Final[int] = 0  #事例検索のため0を指定
 
@@ -64,6 +66,31 @@ def getCaseList(search_id, search_id_sub) -> tuple[int, str]:
             detail=json.loads(result)
         )
     return status, result  # 正常時もTuple[int, str] を返す
+
+# 代表的な事例リストを取得
+def getFeaturedCaseList() -> tuple[int, str]:
+
+    # 取得数
+    # load_dotenv()
+    FEATURED_COUNT = int(os.getenv("FEATURED_COUNT"))
+
+    # 代表事例リストの取得
+    status, result = crud.select_featured_m_case_list(FEATURED_COUNT)
+
+    # 結果が `None` の場合、デフォルト値を設定
+    if result is None:
+        result = json.dumps({"message:No featured m_case data available"}, ensure_ascii=False)
+
+    # ステータスコードに応じた処理
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    return status, result  # 正常時もTuple[int, str] を返す
+
 
 # 選択された事例を登録
 def updateSearchCase(data:setCaseData) -> tuple[int, str]:

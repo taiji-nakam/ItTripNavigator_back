@@ -2,7 +2,7 @@
 import platform
 import math
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import asc,func
+from sqlalchemy import asc, desc, func
 import json
 import pandas as pd
 from datetime import datetime
@@ -394,6 +394,101 @@ def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -
                 })
             result_json = json.dumps(result_list, ensure_ascii=False)
 
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_json = json.dumps(
+            {"error": "An exception occurred.", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_json
+
+# m_case リスト(代表)データ取得
+def select_featured_m_case_list(FEATURED_COUNT) -> Tuple[int, str]:
+    """
+    1) d_search から case_id をグループ化し、出現回数が多い順に上位 FEATURED_COUNT 件を取得
+    2) 取得した case_id が m_case.is_visible=1 の場合のみ事例情報を追加
+    3) 不足があれば、m_case の中から is_visible=1 の他の事例を表示順昇順で補い、
+       合計 FEATURED_COUNT 件になるようにする
+    4) 件数が0なら404、あれば200で返却
+    """
+    status_code = 200
+    result_json = ""
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        # (1) d_search から case_id ごとの出現回数を集計 (case_id が NULL の行は除外)
+        top_case_rows = (
+            session.query(
+                d_search.case_id,
+                func.count(d_search.case_id).label("cnt")
+            )
+            .filter(d_search.case_id != None)
+            .group_by(d_search.case_id)
+            .order_by(desc("cnt"))  # 出現回数の多い順
+            .limit(FEATURED_COUNT)
+            .all()
+        )
+        # 上位で取得した case_id をリスト化
+        top_case_ids = [row.case_id for row in top_case_rows]
+
+        # (2) 上位 case_id の事例情報を取得 (is_visible=1 のみ)
+        final_records = []
+        if top_case_ids:
+            # まず該当する事例情報をまとめて取得
+            case_map = (
+                session.query(m_case.case_id, m_case.case_name, m_case.case_summary)
+                .filter(
+                    m_case.is_visible == 1,
+                    m_case.case_id.in_(top_case_ids)
+                )
+                .all()
+            )
+            # 取得結果を辞書化
+            details_dict = {r.case_id: (r.case_name, r.case_summary) for r in case_map}
+
+            # 出現回数の多い順を保ちつつ、final_records に詰める
+            for row in top_case_rows:
+                c_id = row.case_id
+                if c_id in details_dict:  # is_visible=1 の場合のみ
+                    final_records.append({
+                        "case_id": c_id,
+                        "case_name": details_dict[c_id][0],
+                        "case_summary": details_dict[c_id][1]
+                    })
+
+        # (3) FEATURED_COUNT に満たない場合は、m_case から不足分を補う
+        missing_count = FEATURED_COUNT - len(final_records)
+        if missing_count > 0:
+            # すでに取得済みの case_id を除外
+            exclude_ids = [rec["case_id"] for rec in final_records]
+            extra = (
+                session.query(m_case.case_id, m_case.case_name, m_case.case_summary)
+                .filter(m_case.is_visible == 1)
+                .filter(~m_case.case_id.in_(exclude_ids))
+                .order_by(asc(m_case.display_order))
+                .limit(missing_count)
+                .all()
+            )
+            for e in extra:
+                final_records.append({
+                    "case_id": e.case_id,
+                    "case_name": e.case_name,
+                    "case_summary": e.case_summary
+                })
+
+        # (4) 結果が0件なら404、あれば200
+        if not final_records:
+            status_code = 404
+            result_json = json.dumps({"message": "No featured m_case data available"}, ensure_ascii=False)
+        else:
+            result_json = json.dumps(final_records, ensure_ascii=False)
+
+        session.commit()
     except Exception as e:
         session.rollback()
         status_code = 500
