@@ -53,7 +53,7 @@ def getCaseList(search_id, search_id_sub) -> tuple[int, str]:
 
     # 結果が `None` の場合、デフォルト値を設定
     if result is None:
-        result = json.dumps({"message": "No m_case data available"}, ensure_ascii=False)
+        result = json.dumps({"message": f"No m_case data available for search_id: {search_id}, search_id_sub: {search_id_sub}"}, ensure_ascii=False)
 
     # ステータスコードに応じた処理
     if status == 404:
@@ -97,3 +97,22 @@ def updateSearchCase(data:setCaseData) -> tuple[int, str]:
 
     return status, result
 
+# 事例詳細を取得
+def getCaseDetail(search_id, search_id_sub) -> tuple[int, str]:
+
+    # 事例リストの取得
+    status, result = crud.select_m_case(search_id, search_id_sub)
+
+    # 結果が `None` の場合、デフォルト値を設定
+    if result is None:
+        result = json.dumps({"message": f"No m_case_detal data available for search_id: {search_id}, search_id_sub: {search_id_sub}"}, ensure_ascii=False)
+
+    # ステータスコードに応じた処理
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    return status, result  # 正常時もTuple[int, str] を返す
