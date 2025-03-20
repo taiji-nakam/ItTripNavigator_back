@@ -19,3 +19,16 @@ class setCaseData(BaseModel):
     search_id: int # 検索ID
     search_id_sub: int # 検索サブID
     case_id : int # 事例ID
+
+# ユーザ情報登録のデータモデル
+class userEntryData(BaseModel):
+    search_id: int # 検索ID
+    search_id_sub: int # 検索サブID
+    mail_address: Optional[str] = None # メールアドレス
+    phone_no: Optional[str] = None # 電話番号
+    company_name: Optional[str] = None # 会社名
+    deparment_name: Optional[str] = None # 部署
+    job_title: Optional[str] = None # 役職
+    user_name: Optional[str] = None # 名前
+
+

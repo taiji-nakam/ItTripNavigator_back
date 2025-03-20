@@ -1,9 +1,8 @@
-# uname() error回避
-import platform
-import math
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import asc, desc, func
 import json
+import random
+import string
 import pandas as pd
 from datetime import datetime
 from typing import Tuple, Optional
@@ -15,8 +14,10 @@ from db_control.mymodels import (
     m_department,
     m_theme,
     m_case,
+    m_user,
     t_search,
     d_search, 
+    c_user_id,
     case_industry, 
     case_company_size,
     case_department,
@@ -656,3 +657,86 @@ def select_m_case(search_id: int, search_id_sub: int) -> Tuple[int, str]:
         session.close()
 
     return status_code, result_json
+
+# m_userデータ登録
+def insert_m_user(data: "userEntryData") -> Tuple[int, Optional[str]]:
+    """
+    m_user テーブルへ1件データを挿入し、t_search の user_id を更新する。
+      - user_id はランダム英数字5桁 + 連番5桁 (c_user_id の increment_no を加算管理)
+      - t_search は data.search_id をキーに検索して user_id を更新
+    戻り値: (ステータスコード, JSON文字列 or エラーメッセージ)
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            # 1) c_user_id テーブルのレコードを取得 (常に1行のみ想定)
+            c_record = session.query(c_user_id).first()
+
+            if not c_record:
+                # テーブルが空の場合のみ初期レコードを作成
+                c_record = c_user_id(increment_no=1)
+                session.add(c_record)
+                session.flush()
+                next_inc = 1
+            else:
+                # 既存レコードの increment_no をインクリメント
+                c_record.increment_no += 1
+                session.flush()
+                next_inc = c_record.increment_no
+
+            # 2) ランダム英数字(大文字 + 数字) 5桁の生成
+            random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+
+            # 3) 連番を5桁にゼロ埋め
+            seq_str = str(next_inc).zfill(5)
+
+            # 4) user_id の組み立て
+            user_id = random_part + seq_str  # 例: ABC12 + 00002 => ABC1200002
+
+            # 5) m_user に新しいユーザを作成
+            new_user = m_user(
+                user_id=user_id,
+                mail_address=data.mail_address or "",
+                phone_no=data.phone_no or "",
+                company_name=data.company_name or "",
+                department_name=data.deparment_name or "",
+                job_title=data.job_title or "",
+                user_name=data.user_name or "",
+                entry_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
+            )
+            session.add(new_user)
+
+            # 6) t_search の user_id を更新
+            #    data.search_id をキーに t_search を検索し、user_id を更新する
+            t_search_record = (
+                session.query(t_search)
+                .filter(t_search.search_id == data.search_id)
+                .first()
+            )
+            if t_search_record:
+                t_search_record.user_id = user_id
+                session.flush()
+
+            # 登録完了後に返却するJSONを作成
+            result_dict = {
+                "user_id": user_id
+            }
+            result_str = json.dumps(result_dict, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        print("error:", e)
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "An exception occurred.", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_str

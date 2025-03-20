@@ -142,3 +142,7 @@ class m_user(Base):
     job_title: Mapped[str] = mapped_column()
     user_name: Mapped[str] = mapped_column()
     entry_ymd: Mapped[datetime] = mapped_column()
+
+class c_user_id(Base):
+    __tablename__ = "c_user_id"
+    increment_no: Mapped[int] = mapped_column(primary_key=True)
