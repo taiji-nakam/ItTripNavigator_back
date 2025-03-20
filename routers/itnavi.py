@@ -25,18 +25,22 @@ def create_search_case(data:caseSearchData):
     return JSONResponse(content=json.loads(result), status_code=status)
 
 @router.get("/caseList{search_id,search_id_sub}")
-def create_search_case(search_id: int, search_id_sub: int):
+def select_case_list(search_id: int, search_id_sub: int):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlSearchCase.getCaseList(search_id, search_id_sub)
     return JSONResponse(content=json.loads(result), status_code=status)
 
 @router.post("/case")
-def create_search_case(data:setCaseData):
+def update_search_case(data:setCaseData):
     # 選択ケースを登録
     status, result = mdlSearchCase.updateSearchCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-
+@router.get("/caseDetail{search_id,search_id_sub}")
+def select_case_detail(search_id: int, search_id_sub: int):
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlSearchCase.getCaseDetail(search_id, search_id_sub)
+    return JSONResponse(content=json.loads(result), status_code=status)
 
 @router.get("/industry")
 def get_industry():

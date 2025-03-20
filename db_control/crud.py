@@ -247,6 +247,7 @@ def insert_search(search_mode: int) -> Tuple[int, Optional[int]]:
 
     return status_code, inserted_id
 
+# d_searchデータ追加
 def insert_d_search(data: caseSearchData) -> Tuple[int, Optional[int]]:
     """
     d_search テーブルへ1件データを挿入する。
@@ -301,6 +302,7 @@ def insert_d_search(data: caseSearchData) -> Tuple[int, Optional[int]]:
 
     return status_code, inserted_sub_id
 
+# m_case リストデータ取得
 def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -> Tuple[int, str]:
     """
     1) d_search から (search_id, search_id_sub) をキーに1件取得
@@ -404,6 +406,7 @@ def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -
 
     return status_code, result_json
 
+# d_searchデータ更新(事例検索用)
 def update_d_search_case(
     search_id: int,
     search_id_sub: int,
@@ -493,3 +496,68 @@ def update_d_search_case(
     # (4) 成功時は search_id_sub を返す
     return status_code, str(return_sub_id)
 
+# m_caseデータ取得
+def select_m_case(search_id: int, search_id_sub: int) -> Tuple[int, str]:
+    """
+    1) d_search から (search_id, search_id_sub) をキーに検索し、case_id を取得
+       - case_id が NULL or レコードが見つからない場合 → 404エラー
+    2) 取得した case_id を使って m_case を検索
+       - レコードが見つからない場合 → 404エラー
+    3) 取得した m_case のデータ（display_order, is_visible は除外）を JSON 形式で返す
+    """
+    status_code = 200
+    result_json = ""
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        # 1) d_search から case_id を取得
+        ds_record = (
+            session.query(d_search)
+            .filter(
+                d_search.search_id == search_id,
+                d_search.search_id_sub == search_id_sub
+            )
+            .first()
+        )
+
+        # レコードが無い or case_id が未設定の場合
+        if not ds_record or ds_record.case_id is None:
+            status_code = 404
+            result_json = json.dumps(
+                {"message": f"case_id が取得できませんでした for search_id={search_id}, search_id_sub={search_id_sub}"},
+                ensure_ascii=False
+            )
+            return status_code, result_json
+
+        # 2) m_case から事例詳細を取得
+        case_record = session.query(m_case).filter(m_case.case_id == ds_record.case_id).first()
+        if not case_record:
+            status_code = 404
+            result_json = json.dumps(
+                {"message": f"caseデータが取得できませんでした for case_id={ds_record.case_id}"},
+                ensure_ascii=False
+            )
+            return status_code, result_json
+
+        # 3) 取得した m_case データを JSON に変換 (display_order, is_visible は除外)
+        data = {
+            "case_id": case_record.case_id,
+            "case_name": case_record.case_name,
+            "case_summary": case_record.case_summary,
+            "company_summary": case_record.company_summary,
+            "initiative_summary": case_record.initiative_summary,
+            "issue_background": case_record.issue_background,
+            "solution_method": case_record.solution_method
+        }
+        result_json = json.dumps(data, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_json = json.dumps({"error": "An exception occurred", "details": str(e)}, ensure_ascii=False)
+    finally:
+        session.close()
+
+    return status_code, result_json
