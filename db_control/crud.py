@@ -743,6 +743,154 @@ def insert_m_user(data: userEntryData) -> Tuple[int, Optional[str]]:
 
     return status_code, result_str
 
+# m_userデータ取得
+def select_m_user(user_id: str) -> Tuple[int, Optional[str]]:
+    """
+    m_user から user_id をキーに1件取得する。
+    - 見つからなければ (404, "User not found") を返す
+    - 見つかれば (200, user情報のJSON文字列) を返す
+    - 例外時は (500, エラー情報)
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        user_record = (
+            session.query(m_user)
+            .filter(m_user.user_id == user_id)
+            .first()
+        )
+        if not user_record:
+            status_code = 404
+            result_str = json.dumps({"message": f"User {user_id} not found"}, ensure_ascii=False)
+        else:
+            # レコードを辞書化
+            user_dict = {
+                "user_id": user_record.user_id,
+                "mail_address": user_record.mail_address,
+                "phone_no": user_record.phone_no,
+                "company_name": user_record.company_name,
+                "department_name": user_record.department_name,
+                "job_title": user_record.job_title,
+                "user_name": user_record.user_name,
+                "entry_ymd": user_record.entry_ymd.strftime("%Y-%m-%d %H:%M:%S")
+                              if user_record.entry_ymd else None
+            }
+            result_str = json.dumps(user_dict, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "Exception occurred", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_str
+
+# d_searchデータ取得
+def select_d_search(search_id: int, search_id_sub: int) -> Tuple[int, Optional[str]]:
+    """
+    d_search から (search_id, search_id_sub) をキーに1件取得し、
+    さらに m_industry, m_company_size, m_department, m_theme から
+    各名称(業界名・企業規模名・部署名・テーマ名)を取得して返す。
+
+    - 見つからなければ (404, "Record not found")
+    - 見つかれば (200, JSON文字列)
+    - 例外時は (500, エラー情報)
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        # d_search と各マスタをJOINして取得
+        record = (
+            session.query(
+                d_search.search_id,
+                d_search.search_id_sub,
+                d_search.industry_id,
+                d_search.company_size_id,
+                d_search.department_id,
+                d_search.theme_id,
+                d_search.case_id,
+                d_search.job_id,
+                d_search.search_ymd,
+                m_industry.industry_name,
+                m_company_size.company_size_name,
+                m_department.department_name,
+                m_theme.theme_name
+            )
+            .outerjoin(m_industry, d_search.industry_id == m_industry.industry_id)
+            .outerjoin(m_company_size, d_search.company_size_id == m_company_size.company_size_id)
+            .outerjoin(m_department, d_search.department_id == m_department.department_id)
+            .outerjoin(m_theme, d_search.theme_id == m_theme.theme_id)
+            .filter(d_search.search_id == search_id, d_search.search_id_sub == search_id_sub)
+            .first()
+        )
+
+        if not record:
+            # レコードが見つからない
+            status_code = 404
+            result_str = json.dumps({"message": "d_search record not found"}, ensure_ascii=False)
+        else:
+            (
+                search_id_val,
+                search_id_sub_val,
+                industry_id_val,
+                company_size_id_val,
+                department_id_val,
+                theme_id_val,
+                case_id_val,
+                job_id_val,
+                search_ymd_val,
+                industry_name_val,
+                company_size_name_val,
+                department_name_val,
+                theme_name_val
+            ) = record
+
+            record_dict = {
+                "search_id": search_id_val,
+                "search_id_sub": search_id_sub_val,
+                "industry_id": industry_id_val,
+                "industry_name": industry_name_val,
+                "company_size_id": company_size_id_val,
+                "company_size_name": company_size_name_val,
+                "department_id": department_id_val,
+                "department_name": department_name_val,
+                "theme_id": theme_id_val,
+                "theme_name": theme_name_val,
+                "case_id": case_id_val,
+                "job_id": job_id_val,
+                "search_ymd": (
+                    search_ymd_val.strftime("%Y-%m-%d %H:%M:%S") 
+                    if search_ymd_val else None
+                )
+            }
+
+            result_str = json.dumps(record_dict, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "Exception occurred", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_str
+
+# t_agent_requestデータ追加
 def insert_t_agent_request(data: userData) -> Tuple[int, Optional[str]]:
     """
     t_agent_requestテーブルへレコードを1件追加する。
@@ -778,6 +926,46 @@ def insert_t_agent_request(data: userData) -> Tuple[int, Optional[str]]:
         status_code = 500
         return status_code, str(e)
 
+    finally:
+        session.close()
+
+    return status_code, str(inserted_id) if inserted_id is not None else None
+
+# t_documentデータ追加
+def insert_t_document(search_id, search_id_sub, strategy_doc: str) -> Tuple[int, Optional[str]]:
+    """
+    t_document テーブルに新規レコードを追加し、document_id を返す。
+      - document に strategy_doc を設定
+      - create_ymd にシステム日時を設定
+      - download_ymd は NULL
+      - status は '0'
+    """
+    status_code = 200
+    inserted_id: Optional[int] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            new_doc = t_document(
+                search_id=search_id,
+                search_id_sub=search_id_sub,
+                document=strategy_doc,
+                create_ymd=datetime.now(ZoneInfo("Asia/Tokyo")),
+                download_ymd=None,
+                status='0'
+            )
+            session.add(new_doc)
+            session.flush()
+            session.refresh(new_doc)
+            inserted_id = new_doc.document_id
+
+    except Exception as e:
+        session.rollback()
+        print("Error:", e)
+        status_code = 500
+        return status_code, json.dumps({"error": "Exception occurred", "details": str(e)}, ensure_ascii=False)
     finally:
         session.close()
 
