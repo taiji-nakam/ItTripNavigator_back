@@ -31,4 +31,8 @@ class userEntryData(BaseModel):
     job_title: Optional[str] = None # 役職
     user_name: Optional[str] = None # 名前
 
+class userData(BaseModel):
+    search_id: int # 検索ID
+    search_id_sub: int # 検索サブID
+    user_id: Optional[str] = None # ユーザーID
 

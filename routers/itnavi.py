@@ -2,9 +2,9 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import caseSearchData, setCaseData, userEntryData
+from models.params import caseSearchData, setCaseData, userEntryData, userData
 import json
-from modules import mdlCommon, mdlSearchCase
+from modules import mdlCommon, mdlSearchCase, mdlUserAction
 
 router = APIRouter()
 
@@ -51,8 +51,15 @@ def select_case_detail(search_id: int, search_id_sub: int):
 @router.post("/userEntry")
 def update_search_case(data:userEntryData):
     # ユーザー情報を登録
-    status, result = mdlSearchCase.createUser(data)
+    status, result = mdlUserAction.createUser(data)
     return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/agentSupport")
+def create_agent_support(data:userData):
+    # エージェント相談情報を登録し担当へメール通知
+    status, result = mdlUserAction.createRequest(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
 
 
 @router.get("/industry")

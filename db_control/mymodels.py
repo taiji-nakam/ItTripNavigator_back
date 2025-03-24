@@ -146,3 +146,22 @@ class m_user(Base):
 class c_user_id(Base):
     __tablename__ = "c_user_id"
     increment_no: Mapped[int] = mapped_column(primary_key=True)
+
+class t_document(Base):
+    __tablename__ = "t_document"
+    document_id: Mapped[int] = mapped_column(primary_key=True)
+    search_id: Mapped[int] = mapped_column()
+    search_id_sub: Mapped[int] = mapped_column()
+    document: Mapped[str] = mapped_column()
+    create_ymd: Mapped[datetime] = mapped_column()
+    download_ymd: Mapped[datetime] = mapped_column()
+    status: Mapped[str] = mapped_column()
+
+class t_agent_request(Base):
+    __tablename__ = "t_agent_request"
+    agent_request_id: Mapped[int] = mapped_column(primary_key=True)
+    search_id: Mapped[int] = mapped_column()
+    search_id_sub: Mapped[int] = mapped_column()
+    request_ymd: Mapped[datetime] = mapped_column()
+    response_ymd: Mapped[datetime] = mapped_column()
+    status: Mapped[str] = mapped_column()
