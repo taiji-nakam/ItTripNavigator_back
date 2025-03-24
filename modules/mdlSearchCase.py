@@ -1,9 +1,8 @@
 # 事例検索処理モジュール
 import json
-from db_control import crud, mymodels
-from fastapi.responses import JSONResponse
+from db_control import crud
 from fastapi import HTTPException
-from models.params import caseSearchData, setCaseData, userEntryData
+from models.params import caseSearchData, setCaseData
 from typing import Final
 # from dotenv import load_dotenv
 import os
@@ -143,24 +142,3 @@ def getCaseDetail(search_id, search_id_sub) -> tuple[int, str]:
             detail=json.loads(result)
         )
     return status, result  # 正常時もTuple[int, str] を返す
-
-
-# ユーザー情報を登録
-def createUser(data:userEntryData) -> tuple[int, str]:
-
-    # ユーザー情報を登録
-    status, result = crud.insert_m_user(data)
-
-    # Status異常時の処理
-    if status == 404:
-        # エラーメッセージをJSON形式にして返す
-        return status, json.dumps({"message": result}, ensure_ascii=False)
-    elif status != 200:
-        # resultがNoneの場合、空の辞書を代わりに使用
-        error_detail = json.loads(result) if result is not None else {"error": "Unknown error"}
-        raise HTTPException(
-            status_code=status,
-            detail=error_detail
-        )
-
-    return status, result

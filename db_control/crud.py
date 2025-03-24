@@ -16,14 +16,16 @@ from db_control.mymodels import (
     m_case,
     m_user,
     t_search,
-    d_search, 
+    d_search,
+    t_agent_request,
+    t_document, 
     c_user_id,
     case_industry, 
     case_company_size,
     case_department,
     case_theme
 )
-from models.params import caseSearchData
+from models.params import caseSearchData, userEntryData, userData
 
 # m_industryデータ取得
 def select_m_industry() -> Tuple[int, str]:
@@ -659,7 +661,7 @@ def select_m_case(search_id: int, search_id_sub: int) -> Tuple[int, str]:
     return status_code, result_json
 
 # m_userデータ登録
-def insert_m_user(data: "userEntryData") -> Tuple[int, Optional[str]]:
+def insert_m_user(data: userEntryData) -> Tuple[int, Optional[str]]:
     """
     m_user テーブルへ1件データを挿入し、t_search の user_id を更新する。
       - user_id はランダム英数字5桁 + 連番5桁 (c_user_id の increment_no を加算管理)
@@ -740,3 +742,43 @@ def insert_m_user(data: "userEntryData") -> Tuple[int, Optional[str]]:
         session.close()
 
     return status_code, result_str
+
+def insert_t_agent_request(data: userData) -> Tuple[int, Optional[str]]:
+    """
+    t_agent_requestテーブルへレコードを1件追加する。
+      - request_ymdはシステム日付
+      - response_ymdは指定しない（Noneなど）
+      - statusは'0'
+      - 追加後に発行されたagent_request_idを文字列で返す
+    戻り値: (ステータスコード, agent_request_id 文字列)
+    """
+    status_code = 200
+    inserted_id: Optional[int] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            new_record = t_agent_request(
+                search_id=data.search_id,
+                search_id_sub=data.search_id_sub,
+                request_ymd=datetime.now(ZoneInfo("Asia/Tokyo")),
+                # response_ymdはまだ設定しない
+                status="0"
+            )
+            session.add(new_record)
+            session.flush()
+            session.refresh(new_record)
+            inserted_id = new_record.agent_request_id
+
+    except Exception as e:
+        session.rollback()
+        print("error:", e)
+        status_code = 500
+        return status_code, str(e)
+
+    finally:
+        session.close()
+
+    return status_code, str(inserted_id) if inserted_id is not None else None
