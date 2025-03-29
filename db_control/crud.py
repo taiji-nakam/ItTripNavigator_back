@@ -970,3 +970,105 @@ def insert_t_document(search_id, search_id_sub, strategy_doc: str) -> Tuple[int,
         session.close()
 
     return status_code, str(inserted_id) if inserted_id is not None else None
+
+def select_t_document(document_id: int) -> Tuple[int, Optional[str]]:
+    """
+    t_document テーブルから document_id をキーに1件取得し、
+    JSON文字列にして返す。
+    
+    戻り値:
+      (ステータスコード, JSON文字列 or エラーメッセージ)
+      - 404: レコードが見つからない
+      - 500: 例外発生
+      - 200: 正常時
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        record = (
+            session.query(t_document)
+            .filter(t_document.document_id == document_id)
+            .first()
+        )
+
+        if not record:
+            status_code = 404
+            result_str = json.dumps({"message": "t_document record not found"}, ensure_ascii=False)
+        else:
+            # レコードを辞書化
+            record_dict = {
+                "document_id": record.document_id,
+                "search_id": record.search_id,
+                "search_id_sub": record.search_id_sub,
+                "document": record.document,
+                "create_ymd": record.create_ymd.strftime("%Y-%m-%d %H:%M:%S")
+                                if record.create_ymd else None,
+                "download_ymd": record.download_ymd.strftime("%Y-%m-%d %H:%M:%S")
+                                if record.download_ymd else None,
+                "status": record.status
+            }
+            result_str = json.dumps(record_dict, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "Exception occurred", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_str
+
+def check_t_document(search_id: int, search_id_sub: int, document_id: int) -> Tuple[int, str]:
+    """
+    t_document テーブルで (search_id, search_id_sub, document_id) の組み合わせが
+    存在するかをチェックする。
+
+    戻り値:
+      (status_code, message)
+      - 404: レコードが見つからない
+      - 500: 例外が発生
+      - 200: レコードが存在
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        record = (
+            session.query(t_document)
+            .filter(
+                t_document.search_id == search_id,
+                t_document.search_id_sub == search_id_sub,
+                t_document.document_id == document_id
+            )
+            .first()
+        )
+
+        if not record:
+            # 見つからない
+            status_code = 404
+            result_str = json.dumps({"message": "t_document record not found"}, ensure_ascii=False)
+        else:
+            # 見つかった
+            result_str = json.dumps({"message": "t_document record found"}, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "Exception occurred", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_str

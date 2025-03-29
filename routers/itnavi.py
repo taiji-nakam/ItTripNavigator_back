@@ -66,6 +66,11 @@ def create_strategy(data:userData):
     status, result = mdlStrategy.createDoc(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
+@router.get("/strategy​{search_id,search_id_sub,document_id}")
+def select_case_detail(search_id: int, search_id_sub: int, document_id: int):
+    # 戦略文書を取得
+    status, result = mdlStrategy.getDoc(search_id, search_id_sub, document_id)
+    return JSONResponse(content=json.loads(result), status_code=status)
 
 @router.get("/industry")
 def get_industry():
