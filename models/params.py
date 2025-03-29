@@ -36,3 +36,9 @@ class userData(BaseModel):
     search_id_sub: int # 検索サブID
     user_id: Optional[str] = None # ユーザーID
 
+class strategyData(BaseModel):
+    search_id: int # 検索ID
+    search_id_sub: int # 検索サブID
+    document_id: int # ドキュメントID
+
+

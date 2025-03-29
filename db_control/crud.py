@@ -1072,3 +1072,39 @@ def check_t_document(search_id: int, search_id_sub: int, document_id: int) -> Tu
         session.close()
 
     return status_code, result_str
+
+def update_t_document(document_id: int) -> Tuple[int, Optional[str]]:
+    """
+    t_document テーブルのレコードを document_id をキーに更新する。
+      - download_ymd をシステム日付に更新
+      - status を "1" に更新
+    戻り値:
+      (ステータスコード, JSON文字列)
+      ・レコードが存在しない場合は404を返す
+      ・例外発生時は500を返す
+      ・正常時は200を返す
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        record = session.query(t_document).filter(t_document.document_id == document_id).first()
+        if not record:
+            status_code = 404
+            result_str = json.dumps({"message": "t_document record not found"}, ensure_ascii=False)
+        else:
+            record.download_ymd = datetime.now(ZoneInfo("Asia/Tokyo"))
+            record.status = "1"
+            session.commit()
+            result_str = json.dumps({"message": "t_document updated successfully"}, ensure_ascii=False)
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps({"error": "Exception occurred", "details": str(e)}, ensure_ascii=False)
+    finally:
+        session.close()
+
+    return status_code, result_str
