@@ -137,3 +137,33 @@ def createDoc(data: userData) -> tuple[int, str]:
     
     return status, result
 
+# 戦略文書を取得
+def getDoc(search_id, search_id_sub, document_id) -> tuple[int, str]:
+
+    # 指定されたsearch_id, search_id_sub, document_idの組み合わせを確認
+    status,result = crud.check_t_document(search_id, search_id_sub, document_id)
+    # ステータスコードに応じた処理
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    
+    # 戦略文書の取得
+    status, result = crud.select_t_document(document_id)
+
+    # 結果が `None` の場合、デフォルト値を設定
+    if result is None:
+        result = json.dumps({"message:No featured t_document data available"}, ensure_ascii=False)
+
+    # ステータスコードに応じた処理
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    return status, result  # 正常時もTuple[int, str] を返す
