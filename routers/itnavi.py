@@ -2,7 +2,7 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import caseSearchData, setCaseData, userEntryData, userData
+from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData
 import json
 from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy
 
@@ -71,6 +71,13 @@ def select_case_detail(search_id: int, search_id_sub: int, document_id: int):
     # 戦略文書を取得
     status, result = mdlStrategy.getDoc(search_id, search_id_sub, document_id)
     return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/strategy​/dl")
+def create_strategy(data:strategyData):
+    # 戦略文書を作成
+    status, result = mdlStrategy.updateDocDl(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
 
 @router.get("/industry")
 def get_industry():

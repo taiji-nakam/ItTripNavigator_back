@@ -1,6 +1,6 @@
 # ユーザ向けアクションモジュール
 import json
-from models.params import  userEntryData, userData
+from models.params import  userData, strategyData
 from db_control import crud
 from fastapi import HTTPException
 import os
@@ -167,3 +167,15 @@ def getDoc(search_id, search_id_sub, document_id) -> tuple[int, str]:
             detail=json.loads(result)
         )
     return status, result  # 正常時もTuple[int, str] を返す
+
+# 戦略文書ダウンロードを登録
+def updateDocDl(data: strategyData) -> tuple[int, str]:
+# 戦略文書データを更新
+    status, result = crud.update_t_document(data.document_id)
+    if status == 404:
+        return status, json.dumps({"message": result}, ensure_ascii=False)
+    elif status != 200:
+        error_detail = json.loads(result) if result is not None else {"error": "Unknown error"}
+        raise HTTPException(status_code=status, detail=error_detail)
+    
+    return status, result
