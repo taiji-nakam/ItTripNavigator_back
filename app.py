@@ -16,20 +16,19 @@ from modules.mdlVectorstore import create_talent_vectorstore
 # グローバル変数としてベクトルストアを保持
 talent_vectorstore = None
 
-# デプロイが終わらなくなったのでコメントアウトでリトライ
 # lifespan コンテキストマネージャを利用して起動時処理を記述
-# @asynccontextmanager
-# async def lifespan(_app: FastAPI):
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     # 起動時に RAG(vectorstore) を作成
-    # vectorstore_global.talent_vectorstore = create_talent_vectorstore()
-    #yield
+    vectorstore_global.talent_vectorstore = create_talent_vectorstore()
+    yield
     # シャットダウン時の処理（必要に応じて記述）
-    #print("[lifespan shutdown] アプリ終了処理を実施")
+    print("[lifespan shutdown] アプリ終了処理を実施")
 
 # FastAPI アプリ作成時に lifespan を指定
-# app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan)
 
-app = FastAPI()
+# app = FastAPI()
 
 # 例外ハンドラー: 一般的な例外をキャッチ
 @app.exception_handler(Exception)
