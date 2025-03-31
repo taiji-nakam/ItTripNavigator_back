@@ -4,12 +4,31 @@ from fastapi.responses import JSONResponse
 import logging
 import traceback
 from fastapi.exceptions import RequestValidationError
+from contextlib import asynccontextmanager
+import vectorstore_global
 
 # routerオブジェクトをインポートし、posとしてエイリアスを付ける
 from routers.itnavi import router as itnavi_router
 
-app = FastAPI()
+# vectorstore モジュールからインポート
+from modules.mdlVectorstore import create_talent_vectorstore
 
+# グローバル変数としてベクトルストアを保持
+talent_vectorstore = None
+
+# lifespan コンテキストマネージャを利用して起動時処理を記述
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # 起動時に RAG(vectorstore) を作成
+    vectorstore_global.talent_vectorstore = create_talent_vectorstore()
+    yield
+    # シャットダウン時の処理（必要に応じて記述）
+    print("[lifespan shutdown] アプリ終了処理を実施")
+
+# FastAPI アプリ作成時に lifespan を指定
+app = FastAPI(lifespan=lifespan)
+
+# app = FastAPI()
 
 # 例外ハンドラー: 一般的な例外をキャッチ
 @app.exception_handler(Exception)

@@ -15,6 +15,7 @@ from db_control.mymodels import (
     m_theme,
     m_case,
     m_user,
+    m_job,
     t_search,
     d_search,
     t_agent_request,
@@ -1104,6 +1105,68 @@ def update_t_document(document_id: int) -> Tuple[int, Optional[str]]:
         session.rollback()
         status_code = 500
         result_str = json.dumps({"error": "Exception occurred", "details": str(e)}, ensure_ascii=False)
+    finally:
+        session.close()
+
+    return status_code, result_str
+
+def select_m_job(search_id: int, search_id_sub: int) -> Tuple[int, Optional[str]]:
+    """
+    1) d_search から (search_id, search_id_sub) をキーに1件取得
+    2) job_id が NULL またはレコードが存在しない場合は404を返す
+    3) 取得した job_id を用いて m_job からレコードを取得
+       - レコードが存在しない場合も404を返す
+    4) 職種名などをJSON文字列にして返す
+    
+    戻り値:
+      (status_code, result_json)
+      - 404: レコードや job_id が見つからない場合
+      - 500: 例外発生時
+      - 200: 正常時（m_job の情報をJSON文字列で返す）
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        # 1) d_search から該当レコードを取得
+        ds_record = (
+            session.query(d_search)
+            .filter(d_search.search_id == search_id, d_search.search_id_sub == search_id_sub)
+            .first()
+        )
+
+        # レコードが存在しない or job_idがNULLの場合は404
+        if not ds_record or ds_record.job_id is None:
+            status_code = 404
+            result_str = json.dumps({"message": "No job_id found in d_search"}, ensure_ascii=False)
+            return status_code, result_str
+
+        # 2) job_id を取得
+        job_id = ds_record.job_id
+
+        # 3) m_job から職種情報を取得
+        job_record = session.query(m_job).filter(m_job.job_id == job_id).first()
+        if not job_record:
+            status_code = 404
+            result_str = json.dumps({"message": "m_job record not found"}, ensure_ascii=False)
+        else:
+            # 正常に取得できた場合
+            result_data = {
+                "job_id": job_record.job_id,
+                "job_name": job_record.job_name
+            }
+            result_str = json.dumps(result_data, ensure_ascii=False)
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "Exception occurred", "details": str(e)},
+            ensure_ascii=False
+        )
     finally:
         session.close()
 
