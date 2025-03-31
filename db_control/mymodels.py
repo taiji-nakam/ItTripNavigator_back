@@ -1,34 +1,78 @@
 from sqlalchemy import ForeignKey,DECIMAL, Nullable
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from datetime import datetime
+from sqlalchemy.orm import relationship
+from typing import List
 
 class Base(DeclarativeBase):
     pass
+
+# 職種: m_job
+class m_job(Base):
+    __tablename__ = "m_job"
+
+    job_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    role_id: Mapped[int] = mapped_column(ForeignKey("m_role.role_id"))
+    job_name: Mapped[str] = mapped_column()
+    display_order: Mapped[int] = mapped_column()
+    is_visible: Mapped[bool] = mapped_column()
+     # talent_job 経由で紐づくタレントたち
+    talents: Mapped[List["talent_job"]] = relationship("talent_job", back_populates="job")
+
+# 人材職種対照表: talent_job
+class talent_job(Base):
+    __tablename__ = "talent_job"
+
+    talent_id: Mapped[int] = mapped_column(ForeignKey("m_talent.talent_id"), primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("m_job.job_id"), primary_key=True)
+
+    talent: Mapped["m_talent"] = relationship("m_talent", back_populates="jobs")
+    job: Mapped["m_job"] = relationship("m_job", back_populates="talents")
+
+# 人材: m_talent
+class m_talent(Base):
+    __tablename__ = "m_talent"
+    
+    talent_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column()
+    summary: Mapped[str] = mapped_column()
+    industry: Mapped[str] = mapped_column()
+    display_order: Mapped[int] = mapped_column()
+    is_visible: Mapped[bool] = mapped_column()
+    
+    # リレーション: 子テーブルを取得するため
+    careers: Mapped[List["talent_career"]] = relationship("talent_career", back_populates="talent")
+    mindsets: Mapped[List["talent_mindset"]] = relationship("talent_mindset", back_populates="talent")
+    supportareas: Mapped[List["talent_supportarea"]] = relationship("talent_supportarea", back_populates="talent")
+    jobs: Mapped[List["talent_job"]] = relationship("talent_job", back_populates="talent")
 
 # 支援領域: talent_supportarea
 class talent_supportarea(Base):
     __tablename__ = "talent_supportarea"
     supportarea_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    talent_id: Mapped[int] = mapped_column(primary_key=True)
+    talent_id: Mapped[int] = mapped_column(ForeignKey("m_talent.talent_id"))
     supportarea_title: Mapped[str] = mapped_column()
     supportarea_detail: Mapped[str] = mapped_column()
     display_order: Mapped[int] = mapped_column()
+    talent = relationship("m_talent", back_populates="supportareas")
 
 # マインドセット: talent_mindset
 class talent_mindset(Base):
     __tablename__ = "talent_mindset"
     mindset_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    talent_id: Mapped[int] = mapped_column(primary_key=True)
+    talent_id: Mapped[int] = mapped_column(ForeignKey("m_talent.talent_id"))
     mindset_description: Mapped[str] = mapped_column()
     display_order: Mapped[int] = mapped_column()
+    talent = relationship("m_talent", back_populates="mindsets")
 
 # 経歴: talent_career
 class talent_career(Base):
     __tablename__ = "talent_career"
     career_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    talent_id: Mapped[int] = mapped_column(primary_key=True)
+    talent_id: Mapped[int] = mapped_column(ForeignKey("m_talent.talent_id"))
     career_description: Mapped[str] = mapped_column()
     display_order: Mapped[int] = mapped_column()
+    talent = relationship("m_talent", back_populates="careers")
 
 # 人材_ハッシュタグ対照表: talent_hashtag
 class talent_hashtag(Base):

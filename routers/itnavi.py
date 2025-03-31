@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
 from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData
 import json
-from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy
+from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy, mdlTalent
 
 router = APIRouter()
 
@@ -76,6 +76,12 @@ def select_case_detail(search_id: int, search_id_sub: int, document_id: int):
 def create_strategy(data:strategyData):
     # 戦略文書を作成
     status, result = mdlStrategy.updateDocDl(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.get("/searchResults{search_id,search_id_sub}")
+def select_case_detail(search_id: int, search_id_sub: int):
+    # 人材情報を取得
+    status, result = mdlTalent.getTalent(search_id, search_id_sub)
     return JSONResponse(content=json.loads(result), status_code=status)
 
 
