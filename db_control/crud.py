@@ -26,7 +26,7 @@ from db_control.mymodels import (
     case_department,
     case_theme
 )
-from models.params import caseSearchData, userEntryData, userData
+from models.params import caseSearchData, userEntryData, userData,talentSearchData
 
 # m_industryデータ取得
 def select_m_industry() -> Tuple[int, str]:
@@ -208,6 +208,49 @@ def select_m_theme() -> Tuple[int, str]:
 
     return status_code, result_json
 
+# m_jobデータ取得
+def select_m_job() -> Tuple[int, str]:
+    # 初期化
+    result_json = ""
+    status_code = 200
+
+    # session構築
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    try:
+        # クエリの作成: is_visible = 1 のデータを display_order 順に取得
+        result = (
+            session.query(m_job.job_id, m_job.job_name)
+            .filter(m_job.is_visible == 1)
+            .order_by(asc(m_job.display_order))
+            .all()
+        )
+        
+        # 結果をチェック
+        if not result:
+            result_json = json.dumps({"message": "Job not found"}, ensure_ascii=False)
+            status_code = 404
+        else:
+            # クエリ結果をリスト形式で JSON に変換
+            result_json = json.dumps(
+                [{"job_id": job_id, "job_name": job_name} for job_id, job_name in result],
+                ensure_ascii=False
+            )
+
+    except Exception as e:
+        result_json = json.dumps(
+            {"error": "例外が発生しました。", "details": str(e)}, 
+            ensure_ascii=False
+        )
+        print("!!error!!", e)
+        status_code = 500
+    finally:
+        # セッションを閉じる
+        session.close()
+
+    return status_code, result_json
+
 # t_searchデータ追加
 def insert_search(search_mode: int) -> Tuple[int, Optional[int]]:
     """
@@ -305,6 +348,62 @@ def insert_d_search(data: caseSearchData) -> Tuple[int, Optional[int]]:
         session.close()
 
     return status_code, inserted_sub_id
+
+# d_searchデータ追加
+def insert_d_search(data: talentSearchData) -> Tuple[int, Optional[int]]:
+    """
+    d_search テーブルへ1件データを挿入する。
+      - 同一の data.search_id の中で、最大の search_id_sub + 1 を新しい search_id_sub に設定する
+      - 同一の data.search_id のレコードが存在しない場合は、search_id_sub = 1 とする
+      - job_id, case_id は NULL、search_ymd はシステム日時
+    挿入後、作成された search_id_sub をそのまま返す。
+    
+    戻り値:
+      (ステータスコード, search_id_sub)
+    """
+    status_code = 200
+    inserted_sub_id: Optional[int] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            # 同一 search_id のレコードの中で、最大の search_id_sub を取得
+            max_sub = session.query(func.max(d_search.search_id_sub))\
+                             .filter(d_search.search_id == data.search_id)\
+                             .scalar()
+            if max_sub is None:
+                new_sub = 1
+            else:
+                new_sub = max_sub + 1
+
+            # 新しいレコードの作成
+            new_record = d_search(
+                search_id=data.search_id,
+                search_id_sub=new_sub,  # 計算した値を設定
+                industry_id=None,  # NULL を設定,
+                company_size_id=None,  # NULL を設定,
+                department_id=None,  # NULL を設定,
+                theme_id=None,  # NULL を設定
+                case_id=None,  # NULL を設定
+                job_id=data.job_id,   # NULL を設定
+                search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
+            )
+            session.add(new_record)
+            session.flush()
+            session.refresh(new_record)
+            inserted_sub_id = new_record.search_id_sub
+
+    except Exception as e:
+        session.rollback()
+        print("error:", e)
+        status_code = 500
+    finally:
+        session.close()
+
+    return status_code, inserted_sub_id
+
 
 # m_case リストデータ取得
 def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -> Tuple[int, str]:
@@ -1110,7 +1209,7 @@ def update_t_document(document_id: int) -> Tuple[int, Optional[str]]:
 
     return status_code, result_str
 
-def select_m_job(search_id: int, search_id_sub: int) -> Tuple[int, Optional[str]]:
+def select_m_job_from_search(search_id: int, search_id_sub: int) -> Tuple[int, Optional[str]]:
     """
     1) d_search から (search_id, search_id_sub) をキーに1件取得
     2) job_id が NULL またはレコードが存在しない場合は404を返す

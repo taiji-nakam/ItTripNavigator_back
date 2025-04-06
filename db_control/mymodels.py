@@ -45,6 +45,29 @@ class m_talent(Base):
     mindsets: Mapped[List["talent_mindset"]] = relationship("talent_mindset", back_populates="talent")
     supportareas: Mapped[List["talent_supportarea"]] = relationship("talent_supportarea", back_populates="talent")
     jobs: Mapped[List["talent_job"]] = relationship("talent_job", back_populates="talent")
+    hashtags: Mapped[List["talent_hashtag"]] = relationship("talent_hashtag", back_populates="talent")
+
+# 人材 ハッシュタグ 対照表: talent_hashtag
+class talent_hashtag(Base):
+    __tablename__ = "talent_hashtag"
+
+    talent_id: Mapped[int] = mapped_column(ForeignKey("m_talent.talent_id"), primary_key=True)
+    hashtag_id: Mapped[int] = mapped_column(ForeignKey("m_hashtag.hashtag_id"), primary_key=True)
+
+    # リレーション
+    talent: Mapped["m_talent"] = relationship("m_talent", back_populates="hashtags")
+    hashtag: Mapped["m_hashtag"] = relationship("m_hashtag", back_populates="talent_hashtags")
+
+# ハッシュタグマスタ: m_hashtag
+class m_hashtag(Base):
+    __tablename__ = "m_hashtag"
+
+    hashtag_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hashtag_name: Mapped[str] = mapped_column()
+
+    # talent_hashtag とのリレーション
+    talent_hashtags: Mapped[List["talent_hashtag"]] = relationship("talent_hashtag", back_populates="hashtag")
+
 
 # 支援領域: talent_supportarea
 class talent_supportarea(Base):
@@ -73,18 +96,6 @@ class talent_career(Base):
     career_description: Mapped[str] = mapped_column()
     display_order: Mapped[int] = mapped_column()
     talent = relationship("m_talent", back_populates="careers")
-
-# 人材_ハッシュタグ対照表: talent_hashtag
-class talent_hashtag(Base):
-    __tablename__ = "talent_hashtag"
-    talent_id: Mapped[int] = mapped_column(primary_key=True)
-    hashtag_id: Mapped[int] = mapped_column(primary_key=True)
-
-# ハッシュタグマスタ: m_hashtag
-class m_hashtag(Base):
-    __tablename__ = "m_hashtag"
-    hashtag_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    hashtag_name: Mapped[str] = mapped_column()
 
 # 検索履歴: d_search
 class t_search(Base):

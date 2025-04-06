@@ -2,9 +2,9 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData
+from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData, talentSearchData
 import json
-from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy, mdlTalent
+from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy, mdlTalent, mdlVectorstore
 
 router = APIRouter()
 
@@ -48,6 +48,24 @@ def select_case_detail(search_id: int, search_id_sub: int):
     status, result = mdlSearchCase.getCaseDetail(search_id, search_id_sub)
     return JSONResponse(content=json.loads(result), status_code=status)
 
+@router.get("/job")
+def get_job():
+    # 職種情報の取得
+    status, result = mdlCommon.getJob()
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/searchTalent")
+def create_search_case(data:talentSearchData):
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlTalent.createSearchTalent(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.get("/searchResults{search_id,search_id_sub}")
+def select_talent(search_id: int, search_id_sub: int):
+    # 人材情報を取得
+    status, result = mdlTalent.getTalent(search_id, search_id_sub)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
 @router.post("/userEntry")
 def update_search_case(data:userEntryData):
     # ユーザー情報を登録
@@ -78,12 +96,17 @@ def create_strategy(data:strategyData):
     status, result = mdlStrategy.updateDocDl(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/searchResults{search_id,search_id_sub}")
-def select_case_detail(search_id: int, search_id_sub: int):
-    # 人材情報を取得
-    status, result = mdlTalent.getTalent(search_id, search_id_sub)
+@router.post("/createVecrorstore{target}")
+def create_vector_store(target:str):
+    # FAISSインデックスの再作成
+    status, result = mdlVectorstore.createVectorstore(target)
     return JSONResponse(content=json.loads(result), status_code=status)
 
+@router.get("/searchTalentByPrompt{prompt,cnt}")
+def get_talent_by_prompt(prompt: str, cnt:int):
+    # 人材情報を取得
+    status, result = mdlTalent.getTalentByPrompt(prompt,cnt)
+    return JSONResponse(content=result, status_code=status)
 
 @router.get("/industry")
 def get_industry():
