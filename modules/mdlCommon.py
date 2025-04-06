@@ -124,3 +124,22 @@ def getTheme() -> tuple[int, str]:
             detail=json.loads(result)
         )
     return status, result  # 正常時もTuple[int, str] を返す
+
+# 職種情報を取得
+def getJob() -> tuple[int, str]:
+    # 業界情報の取得
+    status, result = crud.select_m_job()
+
+    # 結果が `None` の場合、デフォルト値を設定
+    if result is None:
+        result = json.dumps({"message": "No m_job data available"}, ensure_ascii=False)
+
+    # ステータスコードに応じた処理
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    return status, result  # 正常時もTuple[int, str] を返す

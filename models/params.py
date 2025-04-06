@@ -31,14 +31,20 @@ class userEntryData(BaseModel):
     job_title: Optional[str] = None # 役職
     user_name: Optional[str] = None # 名前
 
+# ユーザID指定時のデータモデル
 class userData(BaseModel):
     search_id: int # 検索ID
     search_id_sub: int # 検索サブID
     user_id: Optional[str] = None # ユーザーID
 
+# 文書ID指定時のデータモデル
 class strategyData(BaseModel):
     search_id: int # 検索ID
     search_id_sub: int # 検索サブID
     document_id: int # ドキュメントID
 
-
+# 人員検索履歴登録のデータモデル
+class talentSearchData(BaseModel):
+    search_id: Optional[int] = None # 検索ID
+    search_id_sub: Optional[int] = None # 検索サブID
+    job_id: Optional[int] = None # 職種ID

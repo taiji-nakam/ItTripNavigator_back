@@ -1,14 +1,37 @@
 import os
 import shutil
 import traceback
+import json
+import vectorstore_global
 from sqlalchemy.orm import sessionmaker, joinedload
-from sqlalchemy import asc
+from sqlalchemy import asc, true
 from db_control.connect import engine
-from db_control.mymodels import m_talent, talent_job, m_job  # 必要なモデルをインポート
+from db_control.mymodels import m_talent, talent_job, m_job, talent_hashtag, m_hashtag  # 必要なモデルをインポート
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
+
+
+def createVectorstore(target: str) -> tuple[int, str]:
+    """
+    VectorStoreを再作成する
+    2025/04/05現在 talentのみ対応
+    """
+
+    if target == "talent":
+        # talent_Vectorstoreを強制的に作成する
+        vectorstore = create_talent_vectorstore(true)
+        if vectorstore is not None:
+            vectorstore_global.talent_vectorstore = vectorstore
+            result = {"message": "Vectorstore created successfully."}
+            return 200, json.dumps(result, ensure_ascii=False)
+        else:
+            result = {"message": "Vectorstore creation failed."}
+            return 500, json.dumps(result, ensure_ascii=False)
+    else:
+        result = {"message": f"対象 '{target}' が見つかりません。"}
+        return 404, json.dumps(result, ensure_ascii=False)
 
 def create_talent_vectorstore(force_recreate: bool = False):
     """
@@ -39,7 +62,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
             traceback.print_exc()
             # ロードに失敗した場合は再生成を試みる
 
-    # 新規生成
+    #  新規生成
     Session = sessionmaker(bind=engine)
     session = Session()
     try:
@@ -50,8 +73,9 @@ def create_talent_vectorstore(force_recreate: bool = False):
                 joinedload(m_talent.careers),
                 joinedload(m_talent.mindsets),
                 joinedload(m_talent.supportareas),
-                # 追加: talent_job -> m_job をロード
-                joinedload(m_talent.jobs).joinedload(talent_job.job)
+                joinedload(m_talent.jobs).joinedload(talent_job.job),
+                # 追加: talent_hashtag -> m_hashtag をロード
+                joinedload(m_talent.hashtags).joinedload(talent_hashtag.hashtag)
             )
             .filter(m_talent.is_visible == True)
             .order_by(asc(m_talent.display_order))
@@ -71,31 +95,64 @@ def create_talent_vectorstore(force_recreate: bool = False):
 {talent.industry}
 """
             # 経歴
+            content += "\n=== 経歴 ===\n"
             if talent.careers:
-                content += "\n=== 経歴 ===\n"
-                for career in talent.careers:
-                    content += f"- {career.career_description}\n"
+                career_lines = [f"- {career.career_description}\n" for career in talent.careers ]
+                if career_lines:
+                    content += "".join(career_lines)
+                else:
+                    content += "なし\n"
+            else:
+                content += "なし\n"
+
             # マインドセット
+            content += "\n=== マインドセット ===\n"
             if talent.mindsets:
-                content += "\n=== マインドセット ===\n"
-                for mindset in talent.mindsets:
-                    content += f"- {mindset.mindset_description}\n"
+                mindset_lines = [f"- {mindset.mindset_description}\n" for mindset in talent.mindsets ]
+                if mindset_lines:
+                    content += "".join(mindset_lines)
+                else:
+                    content += "なし\n"
+            else:
+                content += "なし\n"
+
             # 支援領域
+            content += "\n=== 支援領域 ===\n"
             if talent.supportareas:
-                content += "\n=== 支援領域 ===\n"
-                for supportarea in talent.supportareas:
-                    content += f"- {supportarea.supportarea_detail}\n"
-            # 追加: 保有職種 (talent_job 経由で m_job.job_name を取得)
+                supportarea_lines = [f"- {supportarea.supportarea_detail}\n" for supportarea in talent.supportareas ]
+                if supportarea_lines:
+                    content += "".join(supportarea_lines)
+                else:
+                    content += "なし\n"
+            else:
+                content += "なし\n"
+
+            # 保有職種 (talent_job 経由で m_job.job_name を取得)
+            content += "\n=== 保有職種 ===\n"
             if talent.jobs:
-                content += "\n=== 保有職種 ===\n"
-                for tjob in talent.jobs:
-                    if tjob.job:
-                        content += f"- {tjob.job.job_name}\n"
+                job_lines = [f"- {tjob.job.job_name}\n" for tjob in talent.jobs if tjob.job]
+                if job_lines:
+                    content += "".join(job_lines)
+                else:
+                    content += "なし\n"
+            else:
+                content += "なし\n"
+
+            # ハッシュタグ (talent_hashtag 経由で m_hashtag.hashtag_name を取得)
+            content += "\n=== ハッシュタグ ===\n"
+            if talent.hashtags:
+                hashtag_lines = [f"- {th.hashtag.hashtag_name}\n" for th in talent.hashtags if th.hashtag]
+                if hashtag_lines:
+                    content += "".join(hashtag_lines)
+                else:
+                    content += "なし\n"
+            else:
+                content += "なし\n"
 
             docs.append(Document(page_content=content.strip()))
 
         # テキスト分割（長いテキストへの対応）
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=150)
         split_docs = text_splitter.split_documents(docs)
 
         if DO_GPT == "TRUE":
