@@ -18,7 +18,19 @@ def get_industry():
     status, result = mdlCommon.getAllIssues()
     return JSONResponse(content=json.loads(result), status_code=status)
 
+@router.get("/cases/featured")
+def select_featured_case_list():
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlSearchCase.getFeaturedCaseList()
+    return JSONResponse(content=json.loads(result), status_code=status)
+
 @router.post("/searchCase")
+def create_search_case(data:caseSearchData):
+    # 検索ID/検索サブID発行、検索履歴登録
+    status, result = mdlSearchCase.createSearchCase(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/searchCaseDirect")
 def create_search_case(data:caseSearchData):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlSearchCase.createSearchCase(data)
@@ -28,12 +40,6 @@ def create_search_case(data:caseSearchData):
 def select_case_list(search_id: int, search_id_sub: int):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlSearchCase.getCaseList(search_id, search_id_sub)
-    return JSONResponse(content=json.loads(result), status_code=status)
-
-@router.get("/cases/featured")
-def select_featured_case_list():
-    # 検索ID/検索サブID発行、検索履歴登録
-    status, result = mdlSearchCase.getFeaturedCaseList()
     return JSONResponse(content=json.loads(result), status_code=status)
 
 @router.post("/case")

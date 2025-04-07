@@ -34,6 +34,11 @@ def getTalentByPrompt(prompt,cnt) -> tuple[int, str]:
 # 人材情報を取得
 def getTalent(search_id, search_id_sub) -> tuple[int, str]:
    
+    # TODO 
+    # 人材検索→職種取得、事例検索→事例取得
+    # それぞれのケースでプロンプト作成
+    # 結果の成形 ※OpenAI使う？
+
     # 職種情報の取得
     status, result = crud.select_m_job_from_search(search_id, search_id_sub)
     # 結果が `None` の場合、デフォルト値を設定
@@ -55,6 +60,7 @@ def getTalent(search_id, search_id_sub) -> tuple[int, str]:
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error parsing job information: " + str(e))
     prompt = f"職種: {job_name}。 {job_name}に優れた人材を抽出してください。名前、エグゼクティブサマリー、経歴は必ず加えてください。"
+    #ex) ERP導入に向いている人を抽出してください。名前、エグゼクティブサマリー、経歴は必ず加えてください。
 
     if vectorstore_global.talent_vectorstore is None:
         raise HTTPException(status_code=500, detail="Vectorstore is not initialized.")
