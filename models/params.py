@@ -13,6 +13,7 @@ class caseSearchData(BaseModel):
     company_size_id: Optional[int] = None   # 企業規模ID
     department_id: Optional[int] = None   # 部署ID
     theme_id: Optional[int] = None  # テーマID
+    case_id: Optional[int] = None  # 事例ID
 
 # 事例履歴(事例ID)登録のデータモデル
 class setCaseData(BaseModel):

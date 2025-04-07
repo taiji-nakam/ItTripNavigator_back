@@ -331,7 +331,7 @@ def insert_d_search(data: caseSearchData) -> Tuple[int, Optional[int]]:
                 company_size_id=data.company_size_id,
                 department_id=data.department_id,
                 theme_id=data.theme_id,
-                case_id=None,  # NULL を設定
+                case_id=data.case_id,
                 job_id=None,   # NULL を設定
                 search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
             )
