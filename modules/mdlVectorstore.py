@@ -95,7 +95,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
 {talent.industry}
 """
             # 経歴
-            content += "\n=== 経歴 ===\n"
+            content += "\n【経歴】\n"
             if talent.careers:
                 career_lines = [f"- {career.career_description}\n" for career in talent.careers ]
                 if career_lines:
@@ -106,7 +106,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
                 content += "なし\n"
 
             # マインドセット
-            content += "\n=== マインドセット ===\n"
+            content += "\n【マインドセット】\n"
             if talent.mindsets:
                 mindset_lines = [f"- {mindset.mindset_description}\n" for mindset in talent.mindsets ]
                 if mindset_lines:
@@ -117,7 +117,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
                 content += "なし\n"
 
             # 支援領域
-            content += "\n=== 支援領域 ===\n"
+            content += "\n【支援領域】\n"
             if talent.supportareas:
                 supportarea_lines = [f"- {supportarea.supportarea_detail}\n" for supportarea in talent.supportareas ]
                 if supportarea_lines:
@@ -128,7 +128,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
                 content += "なし\n"
 
             # 保有職種 (talent_job 経由で m_job.job_name を取得)
-            content += "\n=== 保有職種 ===\n"
+            content += "\n【保有職種】\n"
             if talent.jobs:
                 job_lines = [f"- {tjob.job.job_name}\n" for tjob in talent.jobs if tjob.job]
                 if job_lines:
@@ -139,7 +139,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
                 content += "なし\n"
 
             # ハッシュタグ (talent_hashtag 経由で m_hashtag.hashtag_name を取得)
-            content += "\n=== ハッシュタグ ===\n"
+            content += "\n【ハッシュタグ】\n"
             if talent.hashtags:
                 hashtag_lines = [f"- {th.hashtag.hashtag_name}\n" for th in talent.hashtags if th.hashtag]
                 if hashtag_lines:
