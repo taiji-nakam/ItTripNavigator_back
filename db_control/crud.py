@@ -1209,6 +1209,104 @@ def update_t_document(document_id: int) -> Tuple[int, Optional[str]]:
 
     return status_code, result_str
 
+def check_case_or_job(search_id: int, search_id_sub: int) -> Tuple[int, Optional[str]]:
+    """
+    d_search テーブルから (search_id, search_id_sub) のレコードを取得し、
+      - d_search.case_id が存在する場合：
+          m_case テーブルから該当レコードを検索し、case_id, case_name, case_summary, solution_method を
+          JSON文字列として result に入れて返す。flag には 1 を設定。
+      - それ以外で d_search.job_id が存在する場合：
+          m_job テーブルから該当レコードを検索し、job_name を JSON文字列として result に入れて返す。flag には 0 を設定。
+      - 両方とも存在しない場合、またはレコード自体が存在しない場合は 404 を返す。
+      
+    戻り値:
+      (HTTPステータスコード, JSON文字列)
+      - 200: 正常時（取得した情報を result に含む）
+      - 404: 対象レコードが存在しない、または必要な値が取得できない場合
+      - 500: 例外発生時
+    """
+    status_code = 200
+    result_str: Optional[str] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        ds_record = (
+            session.query(d_search)
+            .filter(
+                d_search.search_id == search_id,
+                d_search.search_id_sub == search_id_sub
+            )
+            .first()
+        )
+
+        if not ds_record:
+            status_code = 404
+            result_str = json.dumps(
+                {"message": f"d_search record not found for search_id: {search_id}, search_id_sub: {search_id_sub}"},
+                ensure_ascii=False
+            )
+            return status_code, result_str
+
+        # case_id が存在する場合：flag 0 を設定
+        if ds_record.case_id is not None:
+            case_record = session.query(m_case).filter(m_case.case_id == ds_record.case_id).first()
+            if not case_record:
+                status_code = 404
+                result_str = json.dumps(
+                    {"message": f"m_case record not found for case_id: {ds_record.case_id}"},
+                    ensure_ascii=False
+                )
+            else:
+                result_data = {
+                    "flag": 0,
+                    "case_id": case_record.case_id,
+                    "case_name": case_record.case_name,
+                    "case_summary": case_record.case_summary,
+                    "solution_method": case_record.solution_method
+                }
+                result_str = json.dumps(result_data, ensure_ascii=False)
+            return status_code, result_str
+
+        # job_id が存在する場合：flag 1 を設定
+        elif ds_record.job_id is not None:
+            job_record = session.query(m_job).filter(m_job.job_id == ds_record.job_id).first()
+            if not job_record:
+                status_code = 404
+                result_str = json.dumps(
+                    {"message": f"m_job record not found for job_id: {ds_record.job_id}"},
+                    ensure_ascii=False
+                )
+            else:
+                result_data = {
+                    "flag": 1,
+                    "job_name": job_record.job_name
+                }
+                result_str = json.dumps(result_data, ensure_ascii=False)
+            return status_code, result_str
+
+        # 両方とも存在しない場合
+        else:
+            status_code = 404
+            result_str = json.dumps(
+                {"message": f"Neither case_id nor job_id is available for search_id: {search_id}, search_id_sub: {search_id_sub}"},
+                ensure_ascii=False
+            )
+            return status_code, result_str
+
+    except Exception as e:
+        session.rollback()
+        status_code = 500
+        result_str = json.dumps(
+            {"error": "Exception occurred", "details": str(e)},
+            ensure_ascii=False
+        )
+    finally:
+        session.close()
+
+    return status_code, result_str
+
 def select_m_job_from_search(search_id: int, search_id_sub: int) -> Tuple[int, Optional[str]]:
     """
     1) d_search から (search_id, search_id_sub) をキーに1件取得
