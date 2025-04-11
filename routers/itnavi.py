@@ -36,7 +36,7 @@ def create_search_case(data:caseSearchData):
     status, result = mdlSearchCase.createSearchCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/cases{search_id,search_id_sub}")
+@router.get("/cases")
 def select_case_list(search_id: int, search_id_sub: int):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlSearchCase.getCaseList(search_id, search_id_sub)
@@ -48,7 +48,7 @@ def update_search_case(data:setCaseData):
     status, result = mdlSearchCase.updateSearchCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/caseDetail{search_id,search_id_sub}")
+@router.get("/caseDetail")
 def select_case_detail(search_id: int, search_id_sub: int):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlSearchCase.getCaseDetail(search_id, search_id_sub)
@@ -66,7 +66,7 @@ def create_search_case(data:talentSearchData):
     status, result = mdlTalent.createSearchTalent(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/searchResults{search_id,search_id_sub}")
+@router.get("/searchResults")
 def select_talent(search_id: int, search_id_sub: int):
     # 人材情報を取得
     status, result = mdlTalent.getTalent(search_id, search_id_sub)
@@ -90,7 +90,7 @@ def create_strategy(data:userData):
     status, result = mdlStrategy.createDoc(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.get("/strategy​{search_id,search_id_sub,document_id}")
+@router.get("/strategy​")
 def select_case_detail(search_id: int, search_id_sub: int, document_id: int):
     # 戦略文書を取得
     status, result = mdlStrategy.getDoc(search_id, search_id_sub, document_id)
