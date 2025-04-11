@@ -20,13 +20,13 @@ def create_strategy_prompt(user: dict, detail: dict, case: dict) -> str:
     戻り値は、改行を "\\n" に置換した1行の文字列です。
     """
     # 各情報を取得（存在しなければ空文字）
-    industry = detail.get("industry_name", "")
-    company_size = detail.get("company_size_name", "")
-    department = detail.get("department_name", "")
-    theme = detail.get("theme_name", "")
+    industry = detail.get("industry_name") or ""
+    company_size = detail.get("company_size_name") or ""
+    department = detail.get("department_name") or ""
+    theme = detail.get("theme_name") or ""
     
-    case_name = case.get("case_name", "")
-    case_summary = case.get("case_summary", "")
+    case_name = case.get("case_name") or ""
+    case_summary = case.get("case_summary") or ""
     
     prompt = (
         "あなたは熟練のITコンサルタントです。以下の情報をもとに、分かりやすい表現でMarkdown形式の戦略文書を作成してください。余計なコメントは含めず、"

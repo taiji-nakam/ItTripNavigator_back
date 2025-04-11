@@ -84,7 +84,7 @@ def create_agent_support(data:userData):
     status, result = mdlUserAction.createRequest(data)
     return JSONResponse(content=json.loads(result), status_code=status)
 
-@router.post("/strategy​")
+@router.post("/strategy")
 def create_strategy(data:userData):
     # 戦略文書を作成
     status, result = mdlStrategy.createDoc(data)
