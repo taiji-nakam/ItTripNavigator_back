@@ -412,7 +412,7 @@ def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -
     2) 取得した industry_id, company_size_id, department_id, theme_id が Null でなければ
        対応する事例対応表 (case_industry 等) と JOIN して m_case を絞り込み
     3) m_case.is_visible = 1 のみ
-    4) display_order 昇順で事例ID, 事例名, 事例概要を取得
+    4) d_search に格納されている case_id の出現数が多い順に事例ID, 事例名, 事例概要を取得
     5) 結果が無ければ 404, あれば 200
     """
 
@@ -476,8 +476,10 @@ def select_m_case_list(search_id: Optional[int], search_id_sub: Optional[int]) -
                      .filter(case_theme.theme_id == ds.theme_id)
             )
 
-        # 3) display_order 昇順
-        query = query.order_by(asc(m_case.display_order))
+        # 3) d_search に格納されている case_id の出現数が多い順（降順）に並び替え
+        query = query.outerjoin(d_search, m_case.case_id == d_search.case_id) \
+                     .group_by(m_case.case_id, m_case.case_name, m_case.case_summary) \
+                     .order_by(func.count(d_search.case_id).desc())
 
         # 4) 結果取得
         records = query.all()
