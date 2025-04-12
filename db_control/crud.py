@@ -295,7 +295,7 @@ def insert_search(search_mode: int) -> Tuple[int, Optional[int]]:
     return status_code, inserted_id
 
 # d_searchデータ追加
-def insert_d_search(data: caseSearchData) -> Tuple[int, Optional[int]]:
+def insert_d_search_case(data: caseSearchData) -> Tuple[int, Optional[int]]:
     """
     d_search テーブルへ1件データを挿入する。
       - 同一の data.search_id の中で、最大の search_id_sub + 1 を新しい search_id_sub に設定する
@@ -350,7 +350,7 @@ def insert_d_search(data: caseSearchData) -> Tuple[int, Optional[int]]:
     return status_code, inserted_sub_id
 
 # d_searchデータ追加
-def insert_d_search(data: talentSearchData) -> Tuple[int, Optional[int]]:
+def insert_d_search_talent(data: talentSearchData) -> Tuple[int, Optional[int]]:
     """
     d_search テーブルへ1件データを挿入する。
       - 同一の data.search_id の中で、最大の search_id_sub + 1 を新しい search_id_sub に設定する
