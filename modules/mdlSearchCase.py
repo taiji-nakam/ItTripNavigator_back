@@ -21,7 +21,7 @@ def createSearchCase(data:caseSearchData) -> tuple[int, str]:
         data.search_id = new_search_id
 
     # d_search 新規作成し検索サブIDを取得
-    status, result = crud.insert_d_search(data)
+    status, result = crud.insert_d_search_case(data)
 
     # Status異常時の処理
     if status == 404:
