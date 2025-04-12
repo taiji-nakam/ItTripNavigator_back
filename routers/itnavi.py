@@ -12,7 +12,7 @@ router = APIRouter()
 def read_root():
     return {"message": "Hello, itnavi(FastAPI)"}
 
-@router.get("/allIssues​")
+@router.get("/allIssues")
 def get_industry():
     # 業界情報の取得
     status, result = mdlCommon.getAllIssues()
