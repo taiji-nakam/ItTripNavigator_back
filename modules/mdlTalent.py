@@ -4,7 +4,7 @@ import re
 from db_control import crud
 from fastapi import HTTPException
 import vectorstore_global
-from models.params import talentSearchData
+from models.params import setTalentData, talentSearchData
 from typing import Final, Dict
 
 # 人材情報に対してプロンプトを実行し結果を返す
@@ -53,7 +53,7 @@ def getTalent(search_id, search_id_sub) -> tuple[int, str]:
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error parsing response: " + str(e))
     
-    prompt_base = "に優れた人材を抽出してください。名前、エグゼクティブサマリー、経歴は必ず加えてください。"
+    prompt_base = "に優れた人材を抽出してください。ID、名前、エグゼクティブサマリー、マインドセット、経歴、支援可能領域は必ず含め、足りない場合は別の人を選んでください"
     # flag の値に応じてプロンプトを作成
     if flag == 0:
         # flag==0 の場合、m_case から取得した情報なので case_name が存在するはず
@@ -94,6 +94,7 @@ def parse_candidate(candidate_text: str) -> Dict[str, str]:
     """
     candidate_text から各セクションを抽出して辞書に変換する。
     キーワードと対応するキーは以下の通り：
+      「【ID】」                -> id
       「【名前】」                -> name
       「【エグゼクティブサマリー】」 -> summary
       「【業界情報】」            -> industry
@@ -111,6 +112,7 @@ def parse_candidate(candidate_text: str) -> Dict[str, str]:
     matches = re.findall(r"【(.*?)】\s*([\s\S]*?)(?=【|$)", candidate_text)
     
     mapping = {
+        "ID": "id",
         "名前": "name",
         "エグゼクティブサマリー": "summary",
         "業界情報": "industry",
@@ -165,3 +167,35 @@ def createSearchTalent(data:talentSearchData) -> tuple[int, str]:
         ensure_ascii=False
     )
     return status, final_json
+
+
+# 検索情報を生成する
+def setSearchTalent(data:setTalentData) -> tuple[int, str]:
+
+    # t_search 人材検索に更新
+    status, result = crud.update_t_search_mode(data.search_id,1)
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        # resultがNoneの場合、空の辞書を代わりに使用
+        error_detail = json.loads(result) if result is not None else {"error": "Unknown error"}
+        raise HTTPException(
+            status_code=status,
+            detail=error_detail
+        )
+    
+    # d_search 人材IDを更新
+    status, result = crud.update_d_search_talent(data.search_id,data.search_id_sub,data.talent_id)
+
+    # Status異常時の処理
+    if status == 404:
+        return status, result  # そのまま返す
+    elif status != 200:
+        # resultがNoneの場合、空の辞書を代わりに使用
+        error_detail = json.loads(result) if result is not None else {"error": "Unknown error"}
+        raise HTTPException(
+            status_code=status,
+            detail=error_detail
+        )
+
+    return status, result

@@ -85,6 +85,10 @@ def create_talent_vectorstore(force_recreate: bool = False):
         docs = []
         for talent in talents:
             content = f"""\
+
+【ID】
+{talent.talent_id}
+
 【名前】
 {talent.name}
 

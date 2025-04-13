@@ -97,7 +97,7 @@ class talent_career(Base):
     display_order: Mapped[int] = mapped_column()
     talent = relationship("m_talent", back_populates="careers")
 
-# 検索履歴: d_search
+# 検索履歴: t_search
 class t_search(Base):
     __tablename__ = "t_search"
     search_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -116,6 +116,7 @@ class d_search(Base):
     theme_id: Mapped[int] = mapped_column()
     case_id: Mapped[int] = mapped_column()
     job_id: Mapped[int] = mapped_column()
+    talent_id: Mapped[int] = mapped_column()
     search_ymd: Mapped[datetime] = mapped_column()
 
 # 事例_業界対照表: case_industry
