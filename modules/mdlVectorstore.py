@@ -143,22 +143,25 @@ def create_talent_vectorstore(force_recreate: bool = False):
                 content += "なし\n"
 
             # ハッシュタグ (talent_hashtag 経由で m_hashtag.hashtag_name を取得)
-            content += "\n【ハッシュタグ】\n"
-            if talent.hashtags:
-                hashtag_lines = [f"- {th.hashtag.hashtag_name}\n" for th in talent.hashtags if th.hashtag]
-                if hashtag_lines:
-                    content += "".join(hashtag_lines)
-                else:
-                    content += "なし\n"
-            else:
-                content += "なし\n"
+            # content += "\n【ハッシュタグ】\n"
+            # if talent.hashtags:
+            #     hashtag_lines = [f"- {th.hashtag.hashtag_name}\n" for th in talent.hashtags if th.hashtag]
+            #     if hashtag_lines:
+            #         content += "".join(hashtag_lines)
+            #     else:
+            #         content += "なし\n"
+            # else:
+            #     content += "なし\n"
 
             docs.append(Document(page_content=content.strip()))
 
         # テキスト分割（長いテキストへの対応）
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=150)
-        split_docs = text_splitter.split_documents(docs)
+        # text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=150)
+        # split_docs = text_splitter.split_documents(docs)
 
+        # テスト(テキスト分割を割愛)
+        split_docs = docs
+        
         if DO_GPT == "TRUE":
             embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
             talent_vectorstore = FAISS.from_documents(split_docs, embeddings)
