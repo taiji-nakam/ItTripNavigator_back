@@ -333,6 +333,7 @@ def insert_d_search_case(data: caseSearchData) -> Tuple[int, Optional[int]]:
                 theme_id=data.theme_id,
                 case_id=data.case_id,
                 job_id=None,   # NULL を設定
+                talent_id=None, 
                 search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
             )
             session.add(new_record)
@@ -388,6 +389,7 @@ def insert_d_search_talent(data: talentSearchData) -> Tuple[int, Optional[int]]:
                 theme_id=None,  # NULL を設定
                 case_id=None,  # NULL を設定
                 job_id=data.job_id,   # NULL を設定
+                talent_id=None,
                 search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
             )
             session.add(new_record)
@@ -606,6 +608,56 @@ def select_featured_m_case_list(FEATURED_COUNT) -> Tuple[int, str]:
 
     return status_code, result_json
 
+# t_searchデータ更新(検索モード)
+def update_t_search_mode(
+    search_id: int,
+    param_search_mode: int
+) -> Tuple[int, Optional[str]]:
+    """
+    t_searchテーブルのレコードを更新する。
+    
+    1) (search_id) で既存レコードを検索
+       - 見つからなければ 404 を返す
+    2) そのレコードを更新して search_mode=param_search_modeにする
+    """
+    status_code = 200
+    return_sub_id: Optional[int] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            # (1) 既存レコードを検索
+            current_record = (
+                session.query(t_search)
+                .filter(
+                    t_search.search_id == search_id
+                )
+                .first()
+            )
+            if not current_record:
+                status_code = 404
+                return status_code, f"No t_search record found for search_id: {search_id}"
+
+            # 既存レコードを更新
+            current_record.search_mode = param_search_mode
+            session.flush()
+            session.refresh(current_record)
+
+    except Exception as e:
+        session.rollback()
+        print("error:", e)
+        status_code = 500
+        return status_code, str(e)
+
+    finally:
+        session.close()
+
+    # (4) 成功時は search_id を返す
+    return status_code, str(search_id)
+
+
 # d_searchデータ更新(事例検索用)
 def update_d_search_case(
     search_id: int,
@@ -677,6 +729,7 @@ def update_d_search_case(
                     theme_id=current_record.theme_id,
                     job_id=current_record.job_id,
                     case_id=param_case_id,
+                    talent_id=current_record.talent_id,
                     search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
                 )
                 session.add(new_record)
@@ -695,6 +748,99 @@ def update_d_search_case(
 
     # (4) 成功時は search_id_sub を返す
     return status_code, str(return_sub_id)
+
+# d_searchデータ更新(事例検索用)
+def update_d_search_talent(
+    search_id: int,
+    search_id_sub: int,
+    param_talent_id: int
+) -> Tuple[int, Optional[str]]:
+    """
+    d_searchテーブルのレコードを更新または新規追加し、search_id_sub を返す。
+    
+    1) (search_id, search_id_sub) で既存レコードを検索
+       - 見つからなければ 404 を返す
+    2) 見つかったレコードの talent_id が null の場合
+       - そのレコードを更新して talent_id=param_talent_id にし、search_id_sub は既存の値のまま
+    3) 見つかったレコードの talent_id がすでに入っている場合
+       - 新規レコードを作成する
+         * search_id は同じ
+         * search_id_sub は 同一search_id の最大 + 1
+         * industry_id, company_size_id, department_id, theme_id, job_id は既存レコードの値をコピー
+         * talent_id は param_talent_id
+         * search_ymd はシステム日付
+    4) 更新または新規追加したレコードの search_id_sub を返す
+    """
+    status_code = 200
+    return_sub_id: Optional[int] = None
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        with session.begin():
+            # (1) 既存レコードを検索
+            current_record = (
+                session.query(d_search)
+                .filter(
+                    d_search.search_id == search_id,
+                    d_search.search_id_sub == search_id_sub
+                )
+                .first()
+            )
+            if not current_record:
+                status_code = 404
+                return status_code, f"No d_search record found for search_id: {search_id}, search_id_sub: {search_id_sub}"
+
+            # (2) talent_id が null の場合 → 既存レコードを更新
+            if current_record.case_id is None:
+                current_record.talent_id = param_talent_id
+                session.flush()
+                session.refresh(current_record)
+                return_sub_id = current_record.search_id_sub
+
+            else:
+                # (3) talent_id が既に入っている場合 → 新規レコードを作成
+                max_sub = (
+                    session.query(func.max(d_search.search_id_sub))
+                    .filter(d_search.search_id == search_id)
+                    .scalar()
+                )
+                if max_sub is None:
+                    new_sub = 1
+                else:
+                    new_sub = max_sub + 1
+
+                new_record = d_search(
+                    search_id=current_record.search_id,
+                    search_id_sub=new_sub,
+                    industry_id=current_record.industry_id,
+                    company_size_id=current_record.company_size_id,
+                    department_id=current_record.department_id,
+                    theme_id=current_record.theme_id,
+                    job_id=current_record.job_id,
+                    case_id=current_record.case_id,
+                    talent_id=param_talent_id,
+                    search_ymd=datetime.now(ZoneInfo("Asia/Tokyo"))
+                )
+                session.add(new_record)
+                session.flush()
+                session.refresh(new_record)
+                return_sub_id = new_record.search_id_sub
+
+    except Exception as e:
+        session.rollback()
+        print("error:", e)
+        status_code = 500
+        return status_code, str(e)
+
+    finally:
+        session.close()
+
+    # (4) 成功時は search_id_sub を返す
+    return status_code, str(return_sub_id)
+
+
 
 # m_caseデータ取得
 def select_m_case(search_id: int, search_id_sub: int) -> Tuple[int, str]:

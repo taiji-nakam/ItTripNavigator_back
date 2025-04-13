@@ -2,7 +2,7 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData, talentSearchData
+from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData, talentSearchData, setTalentData
 import json
 from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy, mdlTalent, mdlVectorstore
 
@@ -65,6 +65,13 @@ def create_search_case(data:talentSearchData):
     # 検索ID/検索サブID発行、検索履歴登録
     status, result = mdlTalent.createSearchTalent(data)
     return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/setTalent")
+def create_search_case(data:setTalentData):
+    # 検索ID/検索サブID発行、人員ID登録
+    status, result = mdlTalent.setSearchTalent(data)
+    return JSONResponse(content=json.loads(result), status_code=status)
+
 
 @router.get("/searchResults")
 def select_talent(search_id: int, search_id_sub: int):

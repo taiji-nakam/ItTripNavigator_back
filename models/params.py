@@ -49,3 +49,10 @@ class talentSearchData(BaseModel):
     search_id: Optional[int] = None # 検索ID
     search_id_sub: Optional[int] = None # 検索サブID
     job_id: Optional[int] = None # 職種ID
+
+# 人員特定時のデータモデル
+class setTalentData(BaseModel):
+    search_id: Optional[int] = None # 検索ID
+    search_id_sub: Optional[int] = None # 検索サブID
+    talent_id: Optional[int] = None # 職種ID
+
