@@ -6,7 +6,10 @@ import vectorstore_global
 from sqlalchemy.orm import sessionmaker, joinedload
 from sqlalchemy import asc, true
 from db_control.connect import engine
-from db_control.mymodels import m_talent, talent_job, m_job, talent_hashtag, m_hashtag  # 必要なモデルをインポート
+from db_control.mymodels import (
+    m_talent, talent_job, m_job, talent_hashtag, m_hashtag,  # talent 関連
+    m_case                                                # case モデルを追加
+)
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -29,6 +32,15 @@ def createVectorstore(target: str) -> tuple[int, str]:
         else:
             result = {"message": "Vectorstore creation failed."}
             return 500, json.dumps(result, ensure_ascii=False)
+
+    elif target == "case":
+        vs = create_case_vectorstore(true)
+        if vs is not None:
+            vectorstore_global.case_vectorstore = vs
+            return 200, json.dumps({"message": "case_vectorstore created successfully."}, ensure_ascii=False)
+        else:
+            return 500, json.dumps({"message": "case_vectorstore creation failed."}, ensure_ascii=False)
+        
     else:
         result = {"message": f"対象 '{target}' が見つかりません。"}
         return 404, json.dumps(result, ensure_ascii=False)
@@ -161,7 +173,7 @@ def create_talent_vectorstore(force_recreate: bool = False):
 
         # テスト(テキスト分割を割愛)
         split_docs = docs
-        
+
         if DO_GPT == "TRUE":
             embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
             talent_vectorstore = FAISS.from_documents(split_docs, embeddings)
@@ -174,6 +186,89 @@ def create_talent_vectorstore(force_recreate: bool = False):
             return None
     except Exception as e:
         print("talent_vectorstore 生成時にエラーが発生しました:", e)
+        traceback.print_exc()
+        return None
+    finally:
+        session.close()
+
+def create_case_vectorstore(force_recreate: bool = False):
+    """
+    m_case テーブルの主要フィールドから FAISS インデックスを生成する関数。
+    """
+    index_dir = "rag/case_vectorstore_index"
+    DO_GPT = os.getenv("DO_GPT")
+    OPENAI_API_KEY = os.getenv("OPEN_AI_API_KEY")
+
+    # 強制再生成
+    if force_recreate and os.path.exists(index_dir):
+        shutil.rmtree(index_dir)
+        print(f"[vectorstore.py] force_recreate=True のため、'{index_dir}' を削除しました。")
+
+    # 既存インデックスのロード
+    if os.path.exists(index_dir):
+        try:
+            embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+            vs = FAISS.load_local(index_dir, embeddings, allow_dangerous_deserialization=True)
+            print(f"[vectorstore.py] ディスクから case_vectorstore をロードしました (ディレクトリ: '{index_dir}')")
+            return vs
+        except Exception as e:
+            print("case_vectorstore ロード時エラー:", e)
+            traceback.print_exc()
+
+    # 新規生成
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        cases = (
+            session.query(m_case)
+            .filter(m_case.is_visible == True)
+            .order_by(asc(m_case.display_order))
+            .all()
+        )
+
+        docs: list[Document] = []
+        for c in cases:
+            content = f"""
+【ID】
+{c.case_id}
+
+【事例名】
+{c.case_name}
+
+【事例概要】
+{c.case_summary}
+
+【企業概要】
+{c.company_summary}
+
+【取り組み概要】
+{c.initiative_summary}
+
+【抱えている課題/背景】
+{c.issue_background}
+
+【解決方法】
+{c.solution_method}
+""".strip()
+            docs.append(Document(page_content=content))
+
+        # 必要に応じてテキスト分割
+        # splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=150)
+        # split_docs = splitter.split_documents(docs)
+        split_docs = docs
+
+        if DO_GPT == "TRUE":
+            embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+            vs = FAISS.from_documents(split_docs, embeddings)
+            vs.save_local(index_dir)
+            print(f"[vectorstore.py] 新規に case_vectorstore を生成し、保存しました: {index_dir} (件数: {len(split_docs)})")
+            return vs
+        else:
+            print("[vectorstore.py] DO_GPT!=TRUE のため、生成をスキップしました。")
+            return None
+
+    except Exception as e:
+        print("case_vectorstore 生成時エラー:", e)
         traceback.print_exc()
         return None
     finally:

@@ -2,9 +2,9 @@ from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
-from models.params import caseSearchData, setCaseData, userEntryData, userData, strategyData, talentSearchData, setTalentData
+from models.params import caseSearchData, dxAdviceData, setCaseData, userEntryData, userData, strategyData, talentSearchData, setTalentData
 import json
-from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy, mdlTalent, mdlVectorstore
+from modules import mdlCommon, mdlSearchCase, mdlUserAction, mdlStrategy, mdlTalent, mdlVectorstore,mdlDxAdvice
 
 router = APIRouter()
 
@@ -143,4 +143,10 @@ def get_department():
 def get_theme():
     # 業界情報の取得
     status, result = mdlCommon.getTheme()
+    return JSONResponse(content=json.loads(result), status_code=status)
+
+@router.post("/dxAdvice")
+def create_strategy(data:dxAdviceData):
+    # DXアドバイスを取得
+    status, result = mdlDxAdvice.getAdviceCase(data)
     return JSONResponse(content=json.loads(result), status_code=status)
