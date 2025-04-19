@@ -11,7 +11,7 @@ import vectorstore_global
 from routers.itnavi import router as itnavi_router
 
 # vectorstore モジュールからインポート
-from modules.mdlVectorstore import create_talent_vectorstore
+from modules.mdlVectorstore import create_talent_vectorstore, create_case_vectorstore
 
 # グローバル変数としてベクトルストアを保持
 talent_vectorstore = None
@@ -21,6 +21,7 @@ talent_vectorstore = None
 async def lifespan(_app: FastAPI):
     # 起動時に RAG(vectorstore) を作成
     vectorstore_global.talent_vectorstore = create_talent_vectorstore()
+    vectorstore_global.case_vectorstore = create_case_vectorstore()
     yield
     # シャットダウン時の処理（必要に応じて記述）
     print("[lifespan shutdown] アプリ終了処理を実施")

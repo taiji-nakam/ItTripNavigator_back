@@ -56,3 +56,8 @@ class setTalentData(BaseModel):
     search_id_sub: Optional[int] = None # 検索サブID
     talent_id: Optional[int] = None # 職種ID
 
+# DXアドバイス取得時のデータモデル
+class dxAdviceData(BaseModel):
+    timing: Optional[str] = None # タイミング
+    domain: Optional[str] = None # 課題
+    free_word: Optional[str] = None # フリーワード
